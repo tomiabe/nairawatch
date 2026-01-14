@@ -11,20 +11,8 @@ export interface RatesResponse {
 
 export const fetchLatestRates = async (): Promise<RatesResponse> => {
   try {
-    // Safety check for browser environments where process might be undefined
-    const apiKey = (typeof process !== 'undefined' && process.env) ? process.env.API_KEY : null;
-    
-    if (!apiKey) {
-      console.warn("No API Key found in environment variables.");
-      return { 
-          rates: INITIAL_RATES, 
-          sources: ["Offline Estimates"], 
-          isFallback: true,
-          error: "Missing API Key. Please configure process.env.API_KEY in your deployment settings."
-      };
-    }
-
-    const ai = new GoogleGenAI({ apiKey });
+    // Initialize Gemini AI with process.env.API_KEY as per guidelines
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
     const prompt = `
       Find the current parallel market (black market) currency exchange rates for Nigerian Naira (NGN).
