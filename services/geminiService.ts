@@ -2,12 +2,26 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { CurrencyRate } from "../types";
 import { INITIAL_RATES } from "../constants";
 
-export const fetchLatestRates = async (): Promise<{ rates: CurrencyRate[], sources: string[] }> => {
+export interface RatesResponse {
+    rates: CurrencyRate[];
+    sources: string[];
+    isFallback: boolean;
+    error?: string;
+}
+
+export const fetchLatestRates = async (): Promise<RatesResponse> => {
   try {
-    const apiKey = process.env.API_KEY;
+    // Safety check for browser environments where process might be undefined
+    const apiKey = (typeof process !== 'undefined' && process.env) ? process.env.API_KEY : null;
+    
     if (!apiKey) {
-      console.warn("No API Key found, returning fallback data");
-      return { rates: INITIAL_RATES, sources: ["Fallback Data"] };
+      console.warn("No API Key found in environment variables.");
+      return { 
+          rates: INITIAL_RATES, 
+          sources: ["Offline Estimates"], 
+          isFallback: true,
+          error: "Missing API Key. Please configure process.env.API_KEY in your deployment settings."
+      };
     }
 
     const ai = new GoogleGenAI({ apiKey });
@@ -87,10 +101,19 @@ export const fetchLatestRates = async (): Promise<{ rates: CurrencyRate[], sourc
         });
     }
 
-    return { rates: mergedRates, sources: Array.from(new Set(sources)) };
+    return { 
+        rates: mergedRates, 
+        sources: Array.from(new Set(sources)),
+        isFallback: false
+    };
 
   } catch (error) {
     console.error("Failed to fetch rates:", error);
-    return { rates: INITIAL_RATES, sources: ["Offline/Fallback Mode"] };
+    return { 
+        rates: INITIAL_RATES, 
+        sources: ["Offline Estimates"],
+        isFallback: true,
+        error: "Connection or AI generation failed."
+    };
   }
 };

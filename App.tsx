@@ -5,7 +5,7 @@ import { RateCard } from './components/RateCard';
 import { fetchLatestRates } from './services/geminiService';
 import { CurrencyRate } from './types';
 import { INITIAL_RATES } from './constants';
-import { ExternalLink, Info } from 'lucide-react';
+import { ExternalLink, Info, AlertTriangle, CloudOff } from 'lucide-react';
 
 export default function App() {
   const [rates, setRates] = useState<CurrencyRate[]>(INITIAL_RATES);
@@ -13,6 +13,7 @@ export default function App() {
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [sources, setSources] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [isFallback, setIsFallback] = useState<boolean>(false);
   
   // Theme State
   const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
@@ -53,9 +54,15 @@ export default function App() {
       setRates(data.rates);
       setSources(data.sources);
       setLastUpdated(new Date());
+      setIsFallback(data.isFallback);
+      
+      if (data.isFallback && data.error) {
+        setError(data.error);
+      }
     } catch (err) {
       console.error(err);
       setError("Failed to fetch live updates. Showing cached rates.");
+      setIsFallback(true);
     } finally {
       setIsLoading(false);
     }
@@ -80,15 +87,24 @@ export default function App() {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
         
-        {/* Error Banner */}
-        {error && (
-             <div className="bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500 p-4 rounded-r-lg shadow-sm">
+        {/* Fallback / Error Banners */}
+        {isFallback && (
+            <div className={`p-4 rounded-lg shadow-sm border-l-4 ${error?.includes("API Key") ? "bg-red-50 dark:bg-red-900/20 border-red-500" : "bg-amber-50 dark:bg-amber-900/20 border-amber-500"}`}>
                 <div className="flex">
                     <div className="flex-shrink-0">
-                        <Info className="h-5 w-5 text-red-400" />
+                        {error?.includes("API Key") ? (
+                            <AlertTriangle className="h-5 w-5 text-red-500" />
+                        ) : (
+                            <CloudOff className="h-5 w-5 text-amber-500" />
+                        )}
                     </div>
                     <div className="ml-3">
-                        <p className="text-sm text-red-700 dark:text-red-300">{error}</p>
+                        <h3 className={`text-sm font-medium ${error?.includes("API Key") ? "text-red-800 dark:text-red-200" : "text-amber-800 dark:text-amber-200"}`}>
+                            {error?.includes("API Key") ? "Configuration Error" : "Offline Mode"}
+                        </h3>
+                        <div className={`mt-2 text-sm ${error?.includes("API Key") ? "text-red-700 dark:text-red-300" : "text-amber-700 dark:text-amber-300"}`}>
+                            <p>{error || "Unable to connect to live exchange data. Displaying estimated fallback rates."}</p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -103,10 +119,17 @@ export default function App() {
         <section>
             <div className="flex items-center justify-between mb-6">
                 <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Current Market Rates</h2>
-                <span className="inline-flex items-center rounded-full bg-emerald-100 dark:bg-emerald-900/30 px-3 py-1 text-xs font-medium text-emerald-800 dark:text-emerald-300 animate-pulse">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 mr-2"></span>
-                    Live Updates
-                </span>
+                {isFallback ? (
+                     <span className="inline-flex items-center rounded-full bg-amber-100 dark:bg-amber-900/30 px-3 py-1 text-xs font-medium text-amber-800 dark:text-amber-300">
+                        <span className="w-2 h-2 rounded-full bg-amber-500 mr-2"></span>
+                        Estimated Data
+                    </span>
+                ) : (
+                    <span className="inline-flex items-center rounded-full bg-emerald-100 dark:bg-emerald-900/30 px-3 py-1 text-xs font-medium text-emerald-800 dark:text-emerald-300 animate-pulse">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 mr-2"></span>
+                        Live Updates
+                    </span>
+                )}
             </div>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -132,7 +155,7 @@ export default function App() {
                     <div>
                         <h4 className="text-white font-semibold text-sm mb-3">Data Sources</h4>
                         <ul className="space-y-2 text-sm">
-                            {sources.length > 0 ? sources.slice(0, 4).map((source, idx) => (
+                            {sources.length > 0 && !isFallback ? sources.slice(0, 4).map((source, idx) => (
                                 <li key={idx} className="flex items-center">
                                     <ExternalLink className="h-3 w-3 mr-2 text-emerald-500" />
                                     <span className="truncate">{source}</span>
@@ -140,7 +163,7 @@ export default function App() {
                             )) : (
                                 <li className="flex items-center text-slate-500">
                                     <Info className="h-3 w-3 mr-2" />
-                                    <span>Searching live sources...</span>
+                                    <span>{isFallback ? "Using offline estimates" : "Searching live sources..."}</span>
                                 </li>
                             )}
                         </ul>
