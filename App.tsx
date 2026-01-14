@@ -5,15 +5,17 @@ import { RateCard } from './components/RateCard';
 import { fetchLatestRates } from './services/geminiService';
 import { CurrencyRate } from './types';
 import { INITIAL_RATES } from './constants';
-import { ExternalLink, Info, AlertTriangle, CloudOff } from 'lucide-react';
+import { ExternalLink, Info, AlertTriangle, WifiOff } from 'lucide-react';
 
 export default function App() {
   const [rates, setRates] = useState<CurrencyRate[]>(INITIAL_RATES);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [sources, setSources] = useState<string[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [isFallback, setIsFallback] = useState<boolean>(false);
+  
+  // Status State
+  const [isOffline, setIsOffline] = useState<boolean>(false);
+  const [errorMsg, setErrorMsg] = useState<string>('');
   
   // Theme State
   const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
@@ -48,21 +50,24 @@ export default function App() {
 
   const loadRates = async () => {
     setIsLoading(true);
-    setError(null);
     try {
       const data = await fetchLatestRates();
       setRates(data.rates);
       setSources(data.sources);
-      setLastUpdated(new Date());
-      setIsFallback(data.isFallback);
       
-      if (data.isFallback && data.error) {
-        setError(data.error);
+      // Handle fallback/error state
+      if (data.isFallback) {
+        setIsOffline(true);
+        setErrorMsg(data.error || 'Using offline estimates');
+      } else {
+        setIsOffline(false);
+        setErrorMsg('');
+        setLastUpdated(new Date());
       }
     } catch (err) {
-      console.error(err);
-      setError("Failed to fetch live updates. Showing cached rates.");
-      setIsFallback(true);
+      console.error("Unexpected error in App:", err);
+      setIsOffline(true);
+      setErrorMsg('Unexpected system error');
     } finally {
       setIsLoading(false);
     }
@@ -87,26 +92,24 @@ export default function App() {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
         
-        {/* Fallback / Error Banners */}
-        {isFallback && (
-            <div className={`p-4 rounded-lg shadow-sm border-l-4 ${error?.includes("API Key") ? "bg-red-50 dark:bg-red-900/20 border-red-500" : "bg-amber-50 dark:bg-amber-900/20 border-amber-500"}`}>
-                <div className="flex">
-                    <div className="flex-shrink-0">
-                        {error?.includes("API Key") ? (
-                            <AlertTriangle className="h-5 w-5 text-red-500" />
-                        ) : (
-                            <CloudOff className="h-5 w-5 text-amber-500" />
-                        )}
-                    </div>
-                    <div className="ml-3">
-                        <h3 className={`text-sm font-medium ${error?.includes("API Key") ? "text-red-800 dark:text-red-200" : "text-amber-800 dark:text-amber-200"}`}>
-                            {error?.includes("API Key") ? "Configuration Error" : "Offline Mode"}
-                        </h3>
-                        <div className={`mt-2 text-sm ${error?.includes("API Key") ? "text-red-700 dark:text-red-300" : "text-amber-700 dark:text-amber-300"}`}>
-                            <p>{error || "Unable to connect to live exchange data. Displaying estimated fallback rates."}</p>
-                        </div>
-                    </div>
+        {/* Error / Offline Banner */}
+        {isOffline && (
+            <div className="rounded-lg bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 p-4">
+            <div className="flex">
+                <div className="flex-shrink-0">
+                <AlertTriangle className="h-5 w-5 text-amber-400" aria-hidden="true" />
                 </div>
+                <div className="ml-3">
+                <h3 className="text-sm font-medium text-amber-800 dark:text-amber-200">
+                    System Alert: Live Updates Unavailable
+                </h3>
+                <div className="mt-2 text-sm text-amber-700 dark:text-amber-300">
+                    <p>
+                    {errorMsg || "Unable to connect to market data."} Displaying estimated rates.
+                    </p>
+                </div>
+                </div>
+            </div>
             </div>
         )}
 
@@ -119,10 +122,11 @@ export default function App() {
         <section>
             <div className="flex items-center justify-between mb-6">
                 <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Current Market Rates</h2>
-                {isFallback ? (
-                     <span className="inline-flex items-center rounded-full bg-amber-100 dark:bg-amber-900/30 px-3 py-1 text-xs font-medium text-amber-800 dark:text-amber-300">
-                        <span className="w-2 h-2 rounded-full bg-amber-500 mr-2"></span>
-                        Estimated Data
+                
+                {isOffline ? (
+                     <span className="inline-flex items-center rounded-full bg-slate-100 dark:bg-slate-800 px-3 py-1 text-xs font-medium text-slate-600 dark:text-slate-400">
+                        <WifiOff className="w-3 h-3 mr-2" />
+                        Offline / Estimates
                     </span>
                 ) : (
                     <span className="inline-flex items-center rounded-full bg-emerald-100 dark:bg-emerald-900/30 px-3 py-1 text-xs font-medium text-emerald-800 dark:text-emerald-300 animate-pulse">
@@ -155,7 +159,7 @@ export default function App() {
                     <div>
                         <h4 className="text-white font-semibold text-sm mb-3">Data Sources</h4>
                         <ul className="space-y-2 text-sm">
-                            {sources.length > 0 && !isFallback ? sources.slice(0, 4).map((source, idx) => (
+                            {sources.length > 0 ? sources.slice(0, 4).map((source, idx) => (
                                 <li key={idx} className="flex items-center">
                                     <ExternalLink className="h-3 w-3 mr-2 text-emerald-500" />
                                     <span className="truncate">{source}</span>
@@ -163,7 +167,7 @@ export default function App() {
                             )) : (
                                 <li className="flex items-center text-slate-500">
                                     <Info className="h-3 w-3 mr-2" />
-                                    <span>{isFallback ? "Using offline estimates" : "Searching live sources..."}</span>
+                                    <span>Searching live sources...</span>
                                 </li>
                             )}
                         </ul>

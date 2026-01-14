@@ -185,7 +185,7 @@ export const Converter: React.FC<ConverterProps> = ({ rates }) => {
                         type="number"
                         value={amount}
                         onChange={(e) => setAmount(e.target.value)}
-                        className="block w-full rounded-xl border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-4 text-2xl font-bold text-slate-900 dark:text-white focus:border-emerald-500 focus:ring-emerald-500 dark:focus:ring-emerald-500/50 transition-colors"
+                        className="block w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-4 text-2xl font-bold text-slate-900 dark:text-white focus:border-emerald-500 focus:ring-emerald-500 dark:focus:ring-emerald-500/50 transition-colors"
                         placeholder="0.00"
                     />
                 </div>
@@ -214,8 +214,8 @@ export const Converter: React.FC<ConverterProps> = ({ rates }) => {
           <div className="space-y-4">
             <div className="space-y-2">
                 <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Converted To</label>
-                <div className="relative block w-full rounded-xl border border-emerald-100 dark:border-emerald-900/30 bg-emerald-50/50 dark:bg-emerald-900/10 p-4 text-right h-[74px] flex items-center justify-end">
-                    <div className="text-2xl font-bold text-emerald-900 dark:text-emerald-400 break-all line-clamp-1">
+                <div className="relative block w-full rounded-xl border border-emerald-100 dark:border-emerald-900/30 bg-emerald-50/50 dark:bg-emerald-900/10 p-4">
+                    <div className="text-2xl font-bold text-emerald-900 dark:text-emerald-400 text-right truncate">
                         {result.toLocaleString(undefined, { maximumFractionDigits: 2 })}
                     </div>
                 </div>
