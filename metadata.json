@@ -1,0 +1,5 @@
+{
+  "name": "NairaWatch",
+  "description": "Real-time Nigerian Naira (NGN) black market and official currency exchange rates converter using AI-powered search grounding.",
+  "requestFramePermissions": []
+}
