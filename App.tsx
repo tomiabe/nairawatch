@@ -92,16 +92,7 @@ export default function App() {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
 
-        {/* Subtitle / System Alert (above converter) */}
-        {isOffline && (
-          <div className="flex justify-center flex-col items-center gap-1 animate-in fade-in slide-in-from-top-2 duration-700">
-            <div className="inline-flex items-center px-3 py-1 rounded-full bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-900/30">
-              <AlertTriangle className="h-3 w-3 text-amber-500 mr-2" />
-              <span className="text-[10px] font-bold text-amber-700 dark:text-amber-400 uppercase tracking-tight">System Alert: Live Updates Unavailable</span>
-            </div>
-            <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">Using smart estimate. Displaying estimated rates.</p>
-          </div>
-        )}
+
 
         {/* Hero Section / Converter */}
         <section className="max-w-3xl mx-auto">
@@ -110,25 +101,32 @@ export default function App() {
 
         {/* Live Rates Grid */}
         <section>
-          <div className="mb-4">
-            <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-1">Current Market Rates</h2>
-            <p className="text-sm text-slate-500 dark:text-slate-400">
-              NairaWatch only displays estimated parallel market rates.
-            </p>
-          </div>
+          <div className="flex flex-col md:flex-row md:items-start md:justify-between mb-8 gap-6">
+            <div>
+              <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-1">Current Market Rates</h2>
+              <p className="text-sm text-slate-500 dark:text-slate-400">
+                NairaWatch only displays estimated parallel market rates.
+              </p>
+            </div>
 
-          <div className="mb-6 flex">
-            {isOffline ? (
-              <span className="inline-flex items-center rounded-full bg-slate-100 dark:bg-slate-800 px-3 py-1 text-xs font-medium text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
-                <WifiOff className="w-3 h-3 mr-2" />
-                Offline / Estimates
-              </span>
-            ) : (
-              <span className="inline-flex items-center rounded-full bg-emerald-100 dark:bg-emerald-900/30 px-3 py-1 text-xs font-medium text-emerald-800 dark:text-emerald-300 animate-pulse border border-emerald-200 dark:border-emerald-800/30">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 mr-2"></span>
-                Live Updates
-              </span>
-            )}
+            <div className="flex flex-col items-start md:items-end gap-2">
+              {isOffline ? (
+                <>
+                  <span className="inline-flex items-center rounded-full bg-slate-100 dark:bg-slate-800 px-3 py-1 text-xs font-medium text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
+                    <WifiOff className="w-3 h-3 mr-2" />
+                    Offline / Estimates
+                  </span>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-500 font-medium md:text-right">
+                    Live updates paused. Rates shown are smart estimates only.
+                  </p>
+                </>
+              ) : (
+                <span className="inline-flex items-center rounded-full bg-emerald-100 dark:bg-emerald-900/30 px-3 py-1 text-xs font-medium text-emerald-800 dark:text-emerald-300 animate-pulse border border-emerald-200 dark:border-emerald-800/30">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 mr-2"></span>
+                  Live Updates
+                </span>
+              )}
+            </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
