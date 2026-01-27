@@ -16,7 +16,7 @@ const API_ENDPOINT = '/api/rates';
  */
 export const fetchLatestRates = async (): Promise<RatesResponse> => {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
+  const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout for AI search
 
   try {
     const res = await fetch(API_ENDPOINT, { signal: controller.signal });
