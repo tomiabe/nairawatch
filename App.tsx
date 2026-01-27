@@ -97,27 +97,39 @@ export default function App() {
           <Converter rates={rates} />
         </section>
 
+        {/* Subtitle / System Alert (above converter) */}
+        {isOffline && (
+          <div className="flex justify-center flex-col items-center gap-1 animate-in fade-in slide-in-from-top-2 duration-700">
+            <div className="inline-flex items-center px-3 py-1 rounded-full bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-900/30">
+              <AlertTriangle className="h-3 w-3 text-amber-500 mr-2" />
+              <span className="text-[10px] font-bold text-amber-700 dark:text-amber-400 uppercase tracking-tight">System Alert: Live Updates Unavailable</span>
+            </div>
+            <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">Using smart estimate. Displaying estimated rates.</p>
+          </div>
+        )}
+
         {/* Live Rates Grid */}
         <section>
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-3">
-            <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Current Market Rates</h2>
+          <div className="mb-4">
+            <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-1">Current Market Rates</h2>
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              NairaWatch only displays estimated parallel market rates.
+            </p>
+          </div>
 
+          <div className="mb-6 flex">
             {isOffline ? (
-              <span className="inline-flex items-center rounded-full bg-slate-100 dark:bg-slate-800 px-3 py-1 text-xs font-medium text-slate-600 dark:text-slate-400">
+              <span className="inline-flex items-center rounded-full bg-slate-100 dark:bg-slate-800 px-3 py-1 text-xs font-medium text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
                 <WifiOff className="w-3 h-3 mr-2" />
                 Offline / Estimates
               </span>
             ) : (
-              <span className="inline-flex items-center rounded-full bg-emerald-100 dark:bg-emerald-900/30 px-3 py-1 text-xs font-medium text-emerald-800 dark:text-emerald-300 animate-pulse">
+              <span className="inline-flex items-center rounded-full bg-emerald-100 dark:bg-emerald-900/30 px-3 py-1 text-xs font-medium text-emerald-800 dark:text-emerald-300 animate-pulse border border-emerald-200 dark:border-emerald-800/30">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 mr-2"></span>
                 Live Updates
               </span>
             )}
           </div>
-
-          <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">
-            NairaWatch only displays estimated parallel market rates.
-          </p>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {rates.map((rate) => (
@@ -155,31 +167,10 @@ export default function App() {
                   )}
                 </ul>
               </div>
-            </div>
 
-            {/* System Alert moved to footer */}
-            {isOffline && (
-              <div className="mt-8 rounded-xl bg-amber-900/20 border border-amber-900/30 p-4">
-                <div className="flex">
-                  <div className="flex-shrink-0">
-                    <AlertTriangle className="h-5 w-5 text-amber-500" aria-hidden="true" />
-                  </div>
-                  <div className="ml-3">
-                    <h3 className="text-sm font-medium text-amber-200">
-                      System Alert: Live Updates Unavailable
-                    </h3>
-                    <div className="mt-1 text-xs text-amber-400/80">
-                      <p>
-                        {errorMsg || "Unable to connect to market data."} Displaying estimated rates.
-                      </p>
-                    </div>
-                  </div>
-                </div>
+              <div className="mt-8 pt-8 border-t border-slate-800 text-center text-xs text-slate-500">
+                &copy; {new Date().getFullYear()} NairaWatch. Built by <a href="https://studio.tomiabe.com" target="_blank" rel="noopener noreferrer" className="text-emerald-400 hover:text-emerald-300 transition-colors">Tomi Abe Studio</a>.
               </div>
-            )}
-
-            <div className="mt-8 pt-8 border-t border-slate-800 text-center text-xs text-slate-500">
-              &copy; {new Date().getFullYear()} NairaWatch. Built by <a href="https://studio.tomiabe.com" target="_blank" rel="noopener noreferrer" className="text-emerald-400 hover:text-emerald-300 transition-colors">Tomi Abe Studio</a>.
             </div>
           </div>
         </footer>
