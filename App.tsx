@@ -104,9 +104,6 @@ export default function App() {
           <div className="flex flex-col md:flex-row md:items-start md:justify-between mb-8 gap-6">
             <div>
               <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-1">Current Market Rates</h2>
-              <p className="text-sm text-slate-500 dark:text-slate-400">
-                NairaWatch only displays estimated parallel market rates.
-              </p>
             </div>
 
             <div className="flex flex-col items-start md:items-end gap-2">
@@ -117,14 +114,19 @@ export default function App() {
                     Offline / Estimates
                   </span>
                   <p className="text-[11px] text-slate-500 dark:text-slate-500 font-medium md:text-right">
-                    Live updates paused. Rates shown are smart estimates only.
+                    Estimates Mode (Live updates paused)
                   </p>
                 </>
               ) : (
-                <span className="inline-flex items-center rounded-full bg-emerald-100 dark:bg-emerald-900/30 px-3 py-1 text-xs font-medium text-emerald-800 dark:text-emerald-300 animate-pulse border border-emerald-200 dark:border-emerald-800/30">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 mr-2"></span>
-                  Live Updates
-                </span>
+                <>
+                  <span className="inline-flex items-center rounded-full bg-emerald-100 dark:bg-emerald-900/30 px-3 py-1 text-xs font-medium text-emerald-800 dark:text-emerald-300 animate-pulse border border-emerald-200 dark:border-emerald-800/30">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 mr-2"></span>
+                    Live Updates
+                  </span>
+                  <p className="text-[11px] text-emerald-600 dark:text-emerald-500/70 font-medium md:text-right">
+                    Live Parallel Market Estimates
+                  </p>
+                </>
               )}
             </div>
           </div>
@@ -143,10 +145,10 @@ export default function App() {
               <div>
                 <h3 className="text-white font-bold text-lg mb-2">About NairaWatch</h3>
                 <p className="text-sm text-slate-400 leading-relaxed mb-4">
-                  NairaWatch uses a state-of-the-art hybrid model to provide the most accurate exchange rates. We combine real-time official data with AI-powered search grounding in sources like NgnRates.com, AbokiFX, and social media trackers to ensure you always have the latest 'street' rates.
+                  NairaWatch aggregates Nigerian parallel market exchange rates using a hybrid model that blends official reference data with AI-assisted analysis of real-world market signals.
                 </p>
                 <p className="text-xs text-slate-500">
-                  *Rates are estimates and may vary by location and vendor. Always confirm before transaction.
+                  *Rates reflect real-world street pricing trends but may vary by location, volume, and vendor. Always confirm before completing a transaction.
                 </p>
               </div>
               <div>
@@ -166,9 +168,10 @@ export default function App() {
                 </ul>
               </div>
 
-              <div className="mt-8 pt-8 border-t border-slate-800 text-center text-xs text-slate-500">
-                &copy; {new Date().getFullYear()} NairaWatch. Built by <a href="https://studio.tomiabe.com" target="_blank" rel="noopener noreferrer" className="text-emerald-400 hover:text-emerald-300 transition-colors">Tomi Abe Studio</a>.
-              </div>
+            </div>
+
+            <div className="mt-8 pt-8 border-t border-slate-800 text-center text-xs text-slate-500">
+              &copy; {new Date().getFullYear()} NairaWatch. Built by <a href="https://studio.tomiabe.com" target="_blank" rel="noopener noreferrer" className="text-emerald-400 hover:text-emerald-300 transition-colors">Tomi Abe Studio</a>.
             </div>
           </div>
         </footer>
