@@ -92,11 +92,6 @@ export default function App() {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
 
-        {/* Hero Section / Converter */}
-        <section className="max-w-3xl mx-auto">
-          <Converter rates={rates} />
-        </section>
-
         {/* Subtitle / System Alert (above converter) */}
         {isOffline && (
           <div className="flex justify-center flex-col items-center gap-1 animate-in fade-in slide-in-from-top-2 duration-700">
@@ -107,6 +102,11 @@ export default function App() {
             <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">Using smart estimate. Displaying estimated rates.</p>
           </div>
         )}
+
+        {/* Hero Section / Converter */}
+        <section className="max-w-3xl mx-auto">
+          <Converter rates={rates} />
+        </section>
 
         {/* Live Rates Grid */}
         <section>
