@@ -115,6 +115,10 @@ export default function App() {
             )}
           </div>
 
+          <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">
+            NairaWatch only displays estimated parallel market rates.
+          </p>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {rates.map((rate) => (
               <RateCard key={rate.code} rate={rate} />
