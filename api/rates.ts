@@ -41,7 +41,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         const genAI = new GoogleGenerativeAI(apiKey);
         const model = genAI.getGenerativeModel({
-            model: "gemini-2.0-flash",
+            model: "gemini-2.0-flash-lite", // Using Lite version for better quota availability
             generationConfig: {
                 temperature: 0.1,
                 maxOutputTokens: 1000,
@@ -100,14 +100,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             sources: uniqueSources.length > 0 ? uniqueSources : ["AI Market Search"],
             isFallback: false,
         });
-    } catch (err) {
+    } catch (err: any) {
         console.error("Vercel Function error:", err);
-        // Return 200 with fallbacks to prevent frontend error toast
+
+        // Specific message for quota errors
+        const isQuotaError = err?.message?.includes("429") || err?.message?.includes("quota");
+        const errorMessage = isQuotaError
+            ? "API Quota Exceeded. Please check your Google AI Studio plan."
+            : (err instanceof Error ? err.message : "AI fetch failed");
+
         return res.status(200).json({
             rates: FALLBACK_RATES,
-            sources: ["Offline Estimates (Function Error)"],
+            sources: ["Offline Estimates (API Error)"],
             isFallback: true,
-            error: err instanceof Error ? err.message : "AI fetch failed",
+            error: errorMessage,
         });
     }
 }
