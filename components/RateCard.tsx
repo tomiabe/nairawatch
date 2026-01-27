@@ -34,18 +34,18 @@ export const RateCard: React.FC<RateCardProps> = ({ rate }) => {
               <div className="flex items-center space-x-1 mb-1">
                 <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium uppercase tracking-tight">Buy Rate</p>
               </div>
-              <div className="flex items-baseline space-x-1">
+              <div className="flex items-center space-x-1.5">
                 <span className="text-lg font-bold text-slate-900 dark:text-slate-100">₦{rate.buy.toLocaleString()}</span>
-                <ArrowDownLeft className="h-3 w-3 text-red-500 dark:text-red-400" />
+                <ArrowDownLeft className="h-4 w-4 text-red-500 dark:text-red-400 flex-shrink-0" />
               </div>
             </div>
             <div className="text-right border-l border-slate-200 dark:border-slate-800 pl-4">
               <div className="flex items-center justify-end space-x-1 mb-1">
                 <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium uppercase tracking-tight">Sell Rate</p>
               </div>
-              <div className="flex items-baseline justify-end space-x-1">
+              <div className="flex items-center justify-end space-x-1.5">
                 <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400">₦{rate.sell.toLocaleString()}</span>
-                <ArrowUpRight className="h-3 w-3 text-emerald-500 dark:text-emerald-400" />
+                <ArrowUpRight className="h-4 w-4 text-emerald-500 dark:text-emerald-400 flex-shrink-0" />
               </div>
             </div>
           </div>
