@@ -12,11 +12,11 @@ export default function App() {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [sources, setSources] = useState<string[]>([]);
-  
+
   // Status State
   const [isOffline, setIsOffline] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string>('');
-  
+
   // Theme State
   const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
 
@@ -54,7 +54,7 @@ export default function App() {
       const data = await fetchLatestRates();
       setRates(data.rates);
       setSources(data.sources);
-      
+
       // Handle fallback/error state
       if (data.isFallback) {
         setIsOffline(true);
@@ -82,101 +82,102 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pb-8 transition-colors duration-300">
-      <Header 
-        lastUpdated={lastUpdated} 
-        onRefresh={loadRates} 
+      <Header
+        lastUpdated={lastUpdated}
+        onRefresh={loadRates}
         isLoading={isLoading}
         isDarkMode={isDarkMode}
         toggleTheme={toggleTheme}
       />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-        
-        {/* Error / Offline Banner */}
-        {isOffline && (
-            <div className="rounded-lg bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 p-4">
-            <div className="flex">
-                <div className="flex-shrink-0">
-                <AlertTriangle className="h-5 w-5 text-amber-400" aria-hidden="true" />
-                </div>
-                <div className="ml-3">
-                <h3 className="text-sm font-medium text-amber-800 dark:text-amber-200">
-                    System Alert: Live Updates Unavailable
-                </h3>
-                <div className="mt-2 text-sm text-amber-700 dark:text-amber-300">
-                    <p>
-                    {errorMsg || "Unable to connect to market data."} Displaying estimated rates.
-                    </p>
-                </div>
-                </div>
-            </div>
-            </div>
-        )}
 
         {/* Hero Section / Converter */}
         <section className="max-w-3xl mx-auto">
-            <Converter rates={rates} />
+          <Converter rates={rates} />
         </section>
 
         {/* Live Rates Grid */}
         <section>
-            <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Current Market Rates</h2>
-                
-                {isOffline ? (
-                     <span className="inline-flex items-center rounded-full bg-slate-100 dark:bg-slate-800 px-3 py-1 text-xs font-medium text-slate-600 dark:text-slate-400">
-                        <WifiOff className="w-3 h-3 mr-2" />
-                        Offline / Estimates
-                    </span>
-                ) : (
-                    <span className="inline-flex items-center rounded-full bg-emerald-100 dark:bg-emerald-900/30 px-3 py-1 text-xs font-medium text-emerald-800 dark:text-emerald-300 animate-pulse">
-                        <span className="w-2 h-2 rounded-full bg-emerald-500 mr-2"></span>
-                        Live Updates
-                    </span>
-                )}
-            </div>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {rates.map((rate) => (
-                    <RateCard key={rate.code} rate={rate} />
-                ))}
-            </div>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-3">
+            <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Current Market Rates</h2>
+
+            {isOffline ? (
+              <span className="inline-flex items-center rounded-full bg-slate-100 dark:bg-slate-800 px-3 py-1 text-xs font-medium text-slate-600 dark:text-slate-400">
+                <WifiOff className="w-3 h-3 mr-2" />
+                Offline / Estimates
+              </span>
+            ) : (
+              <span className="inline-flex items-center rounded-full bg-emerald-100 dark:bg-emerald-900/30 px-3 py-1 text-xs font-medium text-emerald-800 dark:text-emerald-300 animate-pulse">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 mr-2"></span>
+                Live Updates
+              </span>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {rates.map((rate) => (
+              <RateCard key={rate.code} rate={rate} />
+            ))}
+          </div>
         </section>
 
         {/* Footer / Disclaimer */}
         <footer className="border-t border-slate-200 dark:border-slate-800 pt-8 mt-8">
-            <div className="bg-slate-900 dark:bg-slate-900/50 rounded-2xl p-6 md:p-8 text-slate-300 border border-transparent dark:border-slate-800">
-                <div className="grid md:grid-cols-2 gap-8">
-                    <div>
-                        <h3 className="text-white font-bold text-lg mb-2">About NairaWatch</h3>
-                        <p className="text-sm text-slate-400 leading-relaxed mb-4">
-                            We aggregate parallel market (black market) rates from various reliable sources including social media trackers like @naira_rates, AbokiFX, and P2P exchange platforms.
-                        </p>
-                        <p className="text-xs text-slate-500">
-                            *Rates are estimates and may vary by location and vendor. Always confirm before transaction.
-                        </p>
-                    </div>
-                    <div>
-                        <h4 className="text-white font-semibold text-sm mb-3">Data Sources</h4>
-                        <ul className="space-y-2 text-sm">
-                            {sources.length > 0 ? sources.slice(0, 4).map((source, idx) => (
-                                <li key={idx} className="flex items-center">
-                                    <ExternalLink className="h-3 w-3 mr-2 text-emerald-500" />
-                                    <span className="truncate">{source}</span>
-                                </li>
-                            )) : (
-                                <li className="flex items-center text-slate-500">
-                                    <Info className="h-3 w-3 mr-2" />
-                                    <span>Searching live sources...</span>
-                                </li>
-                            )}
-                        </ul>
-                    </div>
-                </div>
-                <div className="mt-8 pt-8 border-t border-slate-800 text-center text-xs text-slate-500">
-                    &copy; {new Date().getFullYear()} NairaWatch. Built by <a href="https://studio.tomiabe.com" target="_blank" rel="noopener noreferrer" className="text-emerald-400 hover:text-emerald-300 transition-colors">Tomi Abe Studio</a>.
-                </div>
+          <div className="bg-slate-900 dark:bg-slate-900/50 rounded-2xl p-6 md:p-8 text-slate-300 border border-transparent dark:border-slate-800">
+            <div className="grid md:grid-cols-2 gap-8">
+              <div>
+                <h3 className="text-white font-bold text-lg mb-2">About NairaWatch</h3>
+                <p className="text-sm text-slate-400 leading-relaxed mb-4">
+                  NairaWatch uses a state-of-the-art hybrid model to provide the most accurate exchange rates. We combine real-time official data with AI-powered search grounding in sources like NgnRates.com, AbokiFX, and social media trackers to ensure you always have the latest 'street' rates.
+                </p>
+                <p className="text-xs text-slate-500">
+                  *Rates are estimates and may vary by location and vendor. Always confirm before transaction.
+                </p>
+              </div>
+              <div>
+                <h4 className="text-white font-semibold text-sm mb-3">Data Sources</h4>
+                <ul className="space-y-2 text-sm">
+                  {sources.length > 0 ? sources.slice(0, 4).map((source, idx) => (
+                    <li key={idx} className="flex items-center">
+                      <ExternalLink className="h-3 w-3 mr-2 text-emerald-500" />
+                      <span className="truncate">{source}</span>
+                    </li>
+                  )) : (
+                    <li className="flex items-center text-slate-500">
+                      <Info className="h-3 w-3 mr-2" />
+                      <span>Searching live sources...</span>
+                    </li>
+                  )}
+                </ul>
+              </div>
             </div>
+
+            {/* System Alert moved to footer */}
+            {isOffline && (
+              <div className="mt-8 rounded-xl bg-amber-900/20 border border-amber-900/30 p-4">
+                <div className="flex">
+                  <div className="flex-shrink-0">
+                    <AlertTriangle className="h-5 w-5 text-amber-500" aria-hidden="true" />
+                  </div>
+                  <div className="ml-3">
+                    <h3 className="text-sm font-medium text-amber-200">
+                      System Alert: Live Updates Unavailable
+                    </h3>
+                    <div className="mt-1 text-xs text-amber-400/80">
+                      <p>
+                        {errorMsg || "Unable to connect to market data."} Displaying estimated rates.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="mt-8 pt-8 border-t border-slate-800 text-center text-xs text-slate-500">
+              &copy; {new Date().getFullYear()} NairaWatch. Built by <a href="https://studio.tomiabe.com" target="_blank" rel="noopener noreferrer" className="text-emerald-400 hover:text-emerald-300 transition-colors">Tomi Abe Studio</a>.
+            </div>
+          </div>
         </footer>
 
       </main>
