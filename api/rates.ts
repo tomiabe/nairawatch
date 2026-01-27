@@ -28,9 +28,10 @@ const FALLBACK_RATES: any[] = [
 export default async function handler(req: VercelRequest, res: VercelResponse) {
     try {
         const apiKey = process.env.API_KEY || process.env.GEMINI_API_KEY;
+        console.log("API Handler Invoked. API Key Present:", !!apiKey);
 
         if (!apiKey) {
-            console.warn("Missing API Key - returning fallback rates");
+            console.warn("Missing API Key in environment variables!");
             return res.status(200).json({
                 rates: FALLBACK_RATES,
                 sources: ["Offline Estimates (Missing API Key)"],
@@ -43,24 +44,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             model: "gemini-1.5-flash",
             generationConfig: {
                 temperature: 0.1,
-                maxOutputTokens: 800,
+                maxOutputTokens: 1000,
             }
         });
 
         const prompt = `
-      Current NGN black market rates for: USD, GBP, EUR, CAD, AUD, CNY, AED, SAR, CHF, JPY, ZAR, GHS, INR, XOF, KES, SGD, TRY, BRL, KRW, MYR.
+      Current NGN black market (parallel) rates for: USD, GBP, EUR, CAD, AUD, CNY, AED, SAR, CHF, JPY, ZAR, GHS, INR, XOF, KES, SGD, TRY, BRL, KRW, MYR.
       
-      Quickly check NgnRates.com and AbokiFX. 
+      CRITICAL: Check NgnRates.com, AbokiFX, and @naira_rates.
       
-      Return ONLY a JSON object:
-      {"rates": [{"code": "USD", "buy": 1600, "sell": 1615, "official": 1530}]}
+      Return ONLY a raw JSON object string:
+      {"rates": [{"code": "USD", "buy": 1600, "sell": 1620, "official": 1550}]}
       
-      No preamble. No markdown. Just raw JSON.
+      Ensure every currency in the list has a buy/sell value. No explanation text.
     `;
 
+        console.log("Sending prompt to Gemini...");
         const result = await model.generateContent(prompt);
         const response = await result.response;
         const jsonText = response.text().replace(/```json/g, '').replace(/```/g, '').trim();
+
+        console.log("Gemini Raw Output (first 100 chars):", jsonText.substring(0, 100));
 
         let parsed: any = { rates: [] };
         try {
