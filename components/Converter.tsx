@@ -234,7 +234,7 @@ export const Converter: React.FC<ConverterProps> = ({ rates }) => {
                     <p className="text-sm text-slate-500 dark:text-slate-400 flex flex-wrap items-center justify-center gap-2 bg-slate-50 dark:bg-slate-800/50 px-4 py-2 rounded-2xl max-w-fit">
                         <span>1 {fromCurrency} ≈ {(getRateInNGN(fromCurrency) / getRateInNGN(toCurrency)).toLocaleString(undefined, { maximumFractionDigits: 4 })} {toCurrency}</span>
                         <span className="hidden sm:inline text-slate-300">•</span>
-                        <span className="text-emerald-600 dark:text-emerald-400 font-medium">Smart Mid-Market Estimate</span>
+                        <span className="text-emerald-600 dark:text-emerald-400 font-medium">Estimated Parallel Market Rate</span>
                     </p>
                 </div>
             </div>
