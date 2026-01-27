@@ -29,8 +29,8 @@ export const RateCard: React.FC<RateCardProps> = ({ rate }) => {
         <div className="flex items-center space-x-3">
           <span className="text-4xl shadow-sm rounded-full bg-slate-50 dark:bg-slate-800 p-1">{rate.flag}</span>
           <div>
-            <h2 className="font-bold text-slate-900 dark:text-white text-lg">{rate.name} to Naira</h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">{rate.code} Exchange Rate</p>
+            <h2 className="font-bold text-slate-900 dark:text-white text-lg">{rate.code}</h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">{rate.name}</p>
           </div>
         </div>
         <div className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-2 py-1 rounded text-xs font-bold font-mono">
