@@ -41,25 +41,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const genAI = new GoogleGenerativeAI(apiKey);
         const model = genAI.getGenerativeModel({
             model: "gemini-1.5-flash",
+            generationConfig: {
+                temperature: 0.1,
+                maxOutputTokens: 800,
+            }
         });
 
         const prompt = `
-      Find the current parallel market (black market) currency exchange rates for Nigerian Naira (NGN).
-      I need the rates for the following currencies against NGN: USD, GBP, EUR, CAD, AUD, CNY, AED, SAR, CHF, JPY, ZAR, GHS, INR, XOF, KES, SGD, TRY, BRL, KRW, MYR.
+      Current NGN black market rates for: USD, GBP, EUR, CAD, AUD, CNY, AED, SAR, CHF, JPY, ZAR, GHS, INR, XOF, KES, SGD, TRY, BRL, KRW, MYR.
       
-      Specifically search and prioritize data from:
-      1. NgnRates.com (very important, check user comments for latest street rates)
-      2. NairaRates (Twitter/X)
-      3. AbokiFX
+      Quickly check NgnRates.com and AbokiFX. 
       
-      Return ONLY a JSON object with a 'rates' array. For each currency:
-      {
-        "code": "USD",
-        "buy": 1600,
-        "sell": 1615,
-        "official": 1530 
-      }
-      Include 'official' CBN rate only if found and significantly different.
+      Return ONLY a JSON object:
+      {"rates": [{"code": "USD", "buy": 1600, "sell": 1615, "official": 1530}]}
+      
+      No preamble. No markdown. Just raw JSON.
     `;
 
         const result = await model.generateContent(prompt);
