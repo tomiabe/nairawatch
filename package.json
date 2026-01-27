@@ -10,7 +10,11 @@
     "preview": "vite preview"
   },
   "dependencies": {
+<<<<<<< HEAD
     "@google/generative-ai": "^0.24.1",
+=======
+    "@google/generative-ai": "^0.21.0",
+>>>>>>> a59d4ec9bb8812fe4b790a7c15b0ec0369c216b3
     "lucide-react": "^0.344.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
