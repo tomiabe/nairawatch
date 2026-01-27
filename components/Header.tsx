@@ -28,7 +28,7 @@ export const Header: React.FC<HeaderProps> = ({ lastUpdated, onRefresh, isLoadin
             <div className="text-right hidden sm:block">
               <p className="text-xs text-slate-400">Last Updated</p>
               <p className="text-sm font-medium font-mono text-emerald-400">
-                {lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                {lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })}
               </p>
             </div>
 
