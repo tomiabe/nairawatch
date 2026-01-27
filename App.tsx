@@ -171,7 +171,7 @@ export default function App() {
             </div>
 
             <div className="mt-8 pt-8 border-t border-slate-800 text-center text-xs text-slate-500">
-              &copy; {new Date().getFullYear()} NairaWatch. Built by <a href="https://studio.tomiabe.com" target="_blank" rel="noopener noreferrer" className="text-emerald-400 hover:text-emerald-300 transition-colors">Tomi Abe Studio</a>.
+              &copy; {new Date().getFullYear()} NairaWatch. Made by <a href="https://studio.tomiabe.com" target="_blank" rel="noopener noreferrer" className="text-emerald-400 hover:text-emerald-300 transition-colors">Tomi Abe Studio</a>.
             </div>
           </div>
         </footer>
