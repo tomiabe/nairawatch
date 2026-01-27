@@ -103,7 +103,7 @@ export default function App() {
         <section>
           <div className="flex flex-col md:flex-row md:items-start md:justify-between mb-8 gap-6">
             <div>
-              <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-1">Current Market Rates</h2>
+              <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-1">Naira Exchange Rate Today (Black Market & CBN)</h1>
             </div>
 
             <div className="flex flex-col items-start md:items-end gap-2">
