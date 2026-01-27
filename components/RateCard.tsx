@@ -6,6 +6,22 @@ interface RateCardProps {
   rate: CurrencyRate;
 }
 
+const formatPrice = (price: number) => {
+  const parts = price.toLocaleString(undefined, {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  }).split('.');
+
+  return (
+    <span className="flex items-baseline">
+      <span className="text-lg font-bold">₦{parts[0]}</span>
+      {parts[1] && (
+        <span className="text-xs font-semibold opacity-80">.{parts[1]}</span>
+      )}
+    </span>
+  );
+};
+
 export const RateCard: React.FC<RateCardProps> = ({ rate }) => {
   return (
     <div className="bg-white dark:bg-slate-900 rounded-xl shadow-md border border-slate-200 dark:border-slate-800 p-5 hover:shadow-lg transition-all duration-300 group">
@@ -34,8 +50,10 @@ export const RateCard: React.FC<RateCardProps> = ({ rate }) => {
               <div className="flex items-center space-x-1 mb-1">
                 <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium uppercase tracking-tight">Buy Rate</p>
               </div>
-              <div className="flex items-center space-x-1.5">
-                <span className="text-lg font-bold text-slate-900 dark:text-slate-100">₦{rate.buy.toLocaleString()}</span>
+              <div className="flex items-center space-x-1 overflow-hidden">
+                <div className="text-slate-900 dark:text-slate-100 truncate">
+                  {formatPrice(rate.buy)}
+                </div>
                 <ArrowDownLeft className="h-4 w-4 text-red-500 dark:text-red-400 flex-shrink-0" />
               </div>
             </div>
@@ -43,8 +61,10 @@ export const RateCard: React.FC<RateCardProps> = ({ rate }) => {
               <div className="flex items-center justify-end space-x-1 mb-1">
                 <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium uppercase tracking-tight">Sell Rate</p>
               </div>
-              <div className="flex items-center justify-end space-x-1.5">
-                <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400">₦{rate.sell.toLocaleString()}</span>
+              <div className="flex items-center justify-end space-x-1 overflow-hidden text-right">
+                <div className="text-emerald-600 dark:text-emerald-400 truncate">
+                  {formatPrice(rate.sell)}
+                </div>
                 <ArrowUpRight className="h-4 w-4 text-emerald-500 dark:text-emerald-400 flex-shrink-0" />
               </div>
             </div>
