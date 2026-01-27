@@ -24,4 +24,3 @@ export const INITIAL_RATES: CurrencyRate[] = [
 ];
 
 export const APP_NAME = "NairaWatch";
-export const GEMINI_MODEL = "gemini-3-flash-preview";
