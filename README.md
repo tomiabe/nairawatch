@@ -1,20 +1,32 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# NairaWatch 🇳🇬
 
-# Run and deploy your AI Studio app
+Real-time parallel market (black market) exchange rates for Nigerian Naira, powered by Gemini AI with search grounding.
 
-This contains everything you need to run your app locally.
+## 🚀 How to Run on Your PC
 
-View your app in AI Studio: https://ai.studio/apps/drive/1xQ0SJb8W-K3Em8fh20-UGftUDHbQhy3x
+To run this project locally with live AI rates, follow these steps:
 
-## Run Locally
+### 1. Setup
+Install all dependencies (including the Vercel tools):
+```bash
+npm install
+```
 
-**Prerequisites:**  Node.js
+### 2. Start Developing
+Run the following command to start both the frontend and the AI-powered backend:
+```bash
+npm run dev:live
+```
+*Note: The first time you run this, it will prompt you to link the project to Vercel. You can simply accept the defaults.*
 
+## 🛠️ Tech Stack
+- **Frontend**: React, Vite, Tailwind CSS (Vanilla CSS focus)
+- **Backend**: Vercel Serverless Functions
+- **AI**: Google Gemini (with search grounding in NgnRates.com, AbokiFX, etc.)
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+## 🔑 Environment Variables
+You will need a `GEMINI_API_KEY` from [Google AI Studio](https://aistudio.google.com/).
+A `.env.local` file has been prepared for you.
+
+---
+Built by [Tomi Abe Studio](https://studio.tomiabe.com).
