@@ -38,7 +38,6 @@ export const RateCard: React.FC<RateCardProps> = ({ rate }) => {
                 <span className="text-lg font-bold text-slate-900 dark:text-slate-100">₦{rate.buy.toLocaleString()}</span>
                 <ArrowDownLeft className="h-3 w-3 text-red-500 dark:text-red-400" />
               </div>
-              <p className="text-[9px] text-slate-500 leading-tight mt-1">What dealers pay per 1 {rate.code}</p>
             </div>
             <div className="text-right border-l border-slate-200 dark:border-slate-800 pl-4">
               <div className="flex items-center justify-end space-x-1 mb-1">
@@ -48,7 +47,6 @@ export const RateCard: React.FC<RateCardProps> = ({ rate }) => {
                 <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400">₦{rate.sell.toLocaleString()}</span>
                 <ArrowUpRight className="h-3 w-3 text-emerald-500 dark:text-emerald-400" />
               </div>
-              <p className="text-[9px] text-slate-500 leading-tight mt-1">What dealers charge per 1 {rate.code}</p>
             </div>
           </div>
         </div>
