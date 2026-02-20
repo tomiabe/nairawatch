@@ -33,8 +33,10 @@ type ParsedAiResponse = {
 };
 
 async function fetchOfficialRates() {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
     try {
-        const response = await fetch('https://open.exchangerate-api.com/v6/latest/USD');
+        const response = await fetch('https://open.exchangerate-api.com/v6/latest/USD', { signal: controller.signal });
         if (!response.ok) throw new Error('API failed');
         const data = await response.json();
         return {
@@ -44,6 +46,8 @@ async function fetchOfficialRates() {
     } catch (e) {
         console.error('Failed to fetch official rates:', e);
         return null;
+    } finally {
+        clearTimeout(timeout);
     }
 }
 
@@ -68,6 +72,8 @@ async function fetchStreetRatesWithOpenRouter(
     model: string,
     officialUsdToNgn: number,
 ): Promise<{ parsed: ParsedAiResponse; rawText: string }> {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
     const prompt = `Return ONLY valid JSON for current NGN parallel market rates for these currencies:
 USD, GBP, EUR, CAD, AUD, CNY, AED, SAR, CHF, JPY, ZAR, GHS, INR, XOF, KES, SGD, TRY, BRL, KRW, MYR.
 
@@ -76,49 +82,45 @@ Rules:
 - Use numbers only for buy/sell.
 - Include only the listed currency codes.
 - Prefer market references like NgnRates.com and AbokiFX when possible.
-- Official USD/NGN reference is about ${officialUsdToNgn}.`; 
+- Official USD/NGN reference is about ${officialUsdToNgn}.`;
 
-    const response = await fetch(OPENROUTER_API_URL, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${apiKey}`,
-            'HTTP-Referer': process.env.OPENROUTER_SITE_URL || 'https://nairawatch.vercel.app',
-            'X-Title': process.env.OPENROUTER_APP_NAME || 'NairaWatch',
-        },
-        body: JSON.stringify({
-            model,
-            temperature: 0.1,
-            max_tokens: 1000,
-            messages: [
-                {
-                    role: 'system',
-                    content: 'You are a financial data assistant. Respond only with valid JSON and no markdown.',
-                },
-                {
-                    role: 'user',
-                    content: prompt,
-                },
-            ],
-        }),
-    });
+    try {
+        const response = await fetch(OPENROUTER_API_URL, {
+            method: 'POST',
+            signal: controller.signal,
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${apiKey}`,
+                'HTTP-Referer': process.env.OPENROUTER_SITE_URL || 'https://nairawatch.vercel.app',
+                'X-Title': process.env.OPENROUTER_APP_NAME || 'NairaWatch',
+            },
+            body: JSON.stringify({
+                model,
+                temperature: 0.1,
+                max_tokens: 1000,
+                messages: [{ role: 'user', content: prompt }],
+            }),
+        });
 
-    if (!response.ok) {
-        const text = await response.text();
-        throw new Error(`OpenRouter ${response.status}: ${text}`);
+        if (!response.ok) {
+            const text = await response.text();
+            throw new Error(`OpenRouter ${response.status}: ${text}`);
+        }
+
+        const data = await response.json();
+        const rawText = data?.choices?.[0]?.message?.content;
+
+        if (!rawText || typeof rawText !== 'string') {
+            throw new Error('OpenRouter returned empty completion content');
+        }
+
+        return {
+            parsed: extractJsonPayload(rawText),
+            rawText,
+        };
+    } finally {
+        clearTimeout(timeout);
     }
-
-    const data = await response.json();
-    const rawText = data?.choices?.[0]?.message?.content;
-
-    if (!rawText || typeof rawText !== 'string') {
-        throw new Error('OpenRouter returned empty completion content');
-    }
-
-    return {
-        parsed: extractJsonPayload(rawText),
-        rawText,
-    };
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
