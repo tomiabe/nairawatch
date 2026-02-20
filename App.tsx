@@ -144,7 +144,7 @@ export default function App() {
                     <span className="w-2 h-2 rounded-full bg-emerald-500 mr-2"></span>
                     Live Updates
                   </span>
-                  <p className="text-[11px] text-emerald-600 dark:text-emerald-500/70 font-medium md:text-right">
+                  <p className="text-xs text-emerald-600 dark:text-emerald-500/70 font-medium md:text-right">
                     Live Parallel Market Estimates
                   </p>
                 </>
