@@ -38,8 +38,8 @@ export const TrendModal: React.FC<TrendModalProps> = ({
   const low = points.length ? Math.min(...points.map((p) => p.buy)) : rate.buy;
 
   return (
-    <div className="fixed inset-0 z-[60] bg-slate-950/60 backdrop-blur-sm p-4 sm:p-8">
-      <div className="max-w-4xl mx-auto bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-2xl">
+    <div className="fixed inset-0 z-[60] bg-slate-950/60 backdrop-blur-sm p-4 sm:p-8 flex items-center justify-center">
+      <div className="w-full max-w-4xl max-h-[90vh] overflow-y-auto bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-2xl">
         <div className="px-5 py-4 border-b border-slate-200 dark:border-slate-700 flex justify-between items-start gap-4">
           <div>
             <h3 className="text-xl font-bold text-slate-900 dark:text-white">
