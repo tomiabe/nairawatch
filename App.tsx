@@ -124,6 +124,7 @@ export default function App() {
           <div className="flex flex-col md:flex-row md:items-start md:justify-between mb-8 gap-6">
             <div>
               <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-1">Current Market Rates</h1>
+              <p className="text-sm text-slate-500 dark:text-slate-400">Tap any card to view trend analytics.</p>
             </div>
 
             <div className="flex flex-col items-start md:items-end gap-2">
