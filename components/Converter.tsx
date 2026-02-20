@@ -4,6 +4,7 @@ import { CurrencyRate, CurrencyCode } from '../types';
 
 interface ConverterProps {
     rates: CurrencyRate[];
+    onInteraction?: (eventName: string, params?: Record<string, string | number | boolean>) => void;
 }
 
 interface CurrencySelectProps {
@@ -123,7 +124,7 @@ const CurrencySelect: React.FC<CurrencySelectProps> = ({ label, value, onChange,
     );
 };
 
-export const Converter: React.FC<ConverterProps> = ({ rates }) => {
+export const Converter: React.FC<ConverterProps> = ({ rates, onInteraction }) => {
     const [amount, setAmount] = useState<string>('1');
     const [fromCurrency, setFromCurrency] = useState<string>(CurrencyCode.USD);
     const [toCurrency, setToCurrency] = useState<string>(CurrencyCode.NGN);
@@ -156,8 +157,39 @@ export const Converter: React.FC<ConverterProps> = ({ rates }) => {
     }, [amount, fromCurrency, toCurrency, rates]);
 
     const handleSwap = () => {
+        onInteraction?.('converter_swap_clicked', {
+            from_currency: fromCurrency,
+            to_currency: toCurrency
+        });
         setFromCurrency(toCurrency);
         setToCurrency(fromCurrency);
+    };
+
+    const handleAmountChange = (value: string) => {
+        setAmount(value);
+    };
+
+    const handleAmountBlur = () => {
+        const numericAmount = Number.parseFloat(amount);
+        if (Number.isFinite(numericAmount)) {
+            onInteraction?.('converter_amount_entered', { amount: numericAmount });
+        }
+    };
+
+    const handleFromCurrencyChange = (code: string) => {
+        onInteraction?.('converter_from_currency_changed', {
+            previous_currency: fromCurrency,
+            next_currency: code
+        });
+        setFromCurrency(code);
+    };
+
+    const handleToCurrencyChange = (code: string) => {
+        onInteraction?.('converter_to_currency_changed', {
+            previous_currency: toCurrency,
+            next_currency: code
+        });
+        setToCurrency(code);
     };
 
     return (
@@ -184,7 +216,8 @@ export const Converter: React.FC<ConverterProps> = ({ rates }) => {
                                 <input
                                     type="number"
                                     value={amount}
-                                    onChange={(e) => setAmount(e.target.value)}
+                                    onChange={(e) => handleAmountChange(e.target.value)}
+                                    onBlur={handleAmountBlur}
                                     className="block w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-4 text-2xl font-bold text-slate-900 dark:text-white focus:border-emerald-500 focus:ring-emerald-500 dark:focus:ring-emerald-500/50 transition-colors"
                                     placeholder="0.00"
                                 />
@@ -194,7 +227,7 @@ export const Converter: React.FC<ConverterProps> = ({ rates }) => {
                         <CurrencySelect
                             label="From"
                             value={fromCurrency}
-                            onChange={setFromCurrency}
+                            onChange={handleFromCurrencyChange}
                             rates={rates}
                         />
                     </div>
@@ -224,7 +257,7 @@ export const Converter: React.FC<ConverterProps> = ({ rates }) => {
                         <CurrencySelect
                             label="To"
                             value={toCurrency}
-                            onChange={setToCurrency}
+                            onChange={handleToCurrencyChange}
                             rates={rates}
                         />
                     </div>
