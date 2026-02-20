@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
-const DEFAULT_OPENROUTER_MODEL = 'meta-llama/llama-3.1-8b-instruct:free';
+const DEFAULT_OPENROUTER_MODEL = 'google/gemma-3-4b-it:free';
 
 // Inline constants to avoid build-time import errors from frontend directories
 const FALLBACK_RATES: any[] = [
