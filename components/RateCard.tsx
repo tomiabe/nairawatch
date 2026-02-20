@@ -65,8 +65,6 @@ export const RateCard: React.FC<RateCardProps> = ({ rate, onOpenTrend }) => {
             <span className="text-xs font-mono font-medium text-slate-700 dark:text-slate-300">₦{rate.official.toLocaleString()}</span>
           </div>
         )}
-
-        <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">Click card for trend analytics</p>
       </div>
     </button>
   );
