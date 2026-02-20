@@ -5,6 +5,16 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-K2WWR9F09M"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag() { dataLayer.push(arguments); }
+    gtag('js', new Date());
+
+    gtag('config', 'G-K2WWR9F09M');
+  </script>
+
   <!-- Primary Meta Tags -->
   <title>NairaWatch - Parallel Market Monitor</title>
   <meta name="title" content="NairaWatch - Parallel Market Monitor">
@@ -70,23 +80,6 @@
   }
 }
 </script>
-  <!-- Google tag (gtag.js) -->
-  <script type="module">
-    const measurementId = import.meta.env.VITE_GA_MEASUREMENT_ID;
-    if (!measurementId) {
-      console.info('Google Analytics disabled: VITE_GA_MEASUREMENT_ID is not set.');
-    } else {
-      const script = document.createElement('script');
-      script.async = true;
-      script.src = `https://www.googletagmanager.com/gtag/js?id=${measurementId}`;
-      document.head.appendChild(script);
-
-      window.dataLayer = window.dataLayer || [];
-      window.gtag = function gtag() { window.dataLayer.push(arguments); };
-      window.gtag('js', new Date());
-      window.gtag('config', measurementId);
-    }
-  </script>
   <!-- Schema.org Structured Data -->
   <script type="application/ld+json">
 {

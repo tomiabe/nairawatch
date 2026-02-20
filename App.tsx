@@ -3,7 +3,6 @@ import { Header } from './components/Header';
 import { Converter } from './components/Converter';
 import { RateCard } from './components/RateCard';
 import { fetchLatestRates } from './services/geminiService';
-import { trackEvent } from './services/analyticsService';
 import { CurrencyRate } from './types';
 import { INITIAL_RATES } from './constants';
 import { ExternalLink, Info, AlertTriangle, WifiOff } from 'lucide-react';
@@ -46,24 +45,15 @@ export default function App() {
   }, [isDarkMode]);
 
   const toggleTheme = () => {
-    setIsDarkMode(prev => {
-      const nextMode = !prev;
-      trackEvent('theme_toggled', { mode: nextMode ? 'dark' : 'light' });
-      return nextMode;
-    });
+    setIsDarkMode(prev => !prev);
   };
 
-  const loadRates = async (trigger: 'initial' | 'auto' | 'manual' = 'auto') => {
+  const loadRates = async () => {
     setIsLoading(true);
     try {
       const data = await fetchLatestRates();
       setRates(data.rates);
       setSources(data.sources);
-      trackEvent('rates_loaded', {
-        trigger,
-        count: data.rates.length,
-        fallback: data.isFallback
-      });
 
       // Handle fallback/error state
       if (data.isFallback) {
@@ -78,21 +68,15 @@ export default function App() {
       console.error("Unexpected error in App:", err);
       setIsOffline(true);
       setErrorMsg('Unexpected system error');
-      trackEvent('rates_load_failed', { trigger });
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleManualRefresh = () => {
-    trackEvent('refresh_clicked');
-    loadRates('manual');
-  };
-
   useEffect(() => {
-    loadRates('initial');
+    loadRates();
     // Refresh every 5 minutes automatically
-    const interval = setInterval(() => loadRates('auto'), 5 * 60 * 1000);
+    const interval = setInterval(loadRates, 5 * 60 * 1000);
     return () => clearInterval(interval);
   }, []);
 
@@ -100,7 +84,7 @@ export default function App() {
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pb-8 transition-colors duration-300">
       <Header
         lastUpdated={lastUpdated}
-        onRefresh={handleManualRefresh}
+        onRefresh={loadRates}
         isLoading={isLoading}
         isDarkMode={isDarkMode}
         toggleTheme={toggleTheme}
@@ -112,7 +96,7 @@ export default function App() {
 
         {/* Hero Section / Converter */}
         <section className="max-w-3xl mx-auto">
-          <Converter rates={rates} onInteraction={trackEvent} />
+          <Converter rates={rates} />
         </section>
 
         {/* Live Rates Grid */}
