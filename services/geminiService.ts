@@ -34,7 +34,7 @@ export const fetchLatestRates = async (): Promise<RatesResponse> => {
       isFallback: true,
       error: err instanceof Error && err.name === 'AbortError'
         ? "Request timed out. Using estimated rates."
-        : "Live updates unavailable",
+        : "",
     };
   }
 };

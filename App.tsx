@@ -57,7 +57,7 @@ export default function App() {
 
       if (data.isFallback) {
         setIsOffline(true);
-        setErrorMsg(data.error || 'Using offline estimates');
+        setErrorMsg(data.error || '');
       } else {
         setIsOffline(false);
         setErrorMsg('');
