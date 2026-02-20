@@ -2,6 +2,11 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
 const DEFAULT_OPENROUTER_MODEL = 'google/gemma-3-4b-it:free';
+const DEFAULT_OPENROUTER_FALLBACK_MODELS = [
+    'google/gemma-3-4b-it:free',
+    'meta-llama/llama-3.2-3b-instruct:free',
+    'qwen/qwen3-4b:free',
+];
 
 // Inline constants to avoid build-time import errors from frontend directories
 const FALLBACK_RATES: any[] = [
@@ -123,10 +128,20 @@ Rules:
     }
 }
 
+function getModelCandidates() {
+    const primary = process.env.OPENROUTER_MODEL || DEFAULT_OPENROUTER_MODEL;
+    const extra = (process.env.OPENROUTER_MODELS || '')
+        .split(',')
+        .map((m) => m.trim())
+        .filter(Boolean);
+
+    return Array.from(new Set([primary, ...extra, ...DEFAULT_OPENROUTER_FALLBACK_MODELS]));
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
     try {
         const apiKey = process.env.OPENROUTER_API_KEY || process.env.API_KEY;
-        const model = process.env.OPENROUTER_MODEL || DEFAULT_OPENROUTER_MODEL;
+        const models = getModelCandidates();
 
         const officialData = await fetchOfficialRates();
         const officialUsdToNgn = officialData?.usdToNgn || 1530;
@@ -144,27 +159,37 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         let sources: string[] = ['Official Exchange API'];
         let isFallback = true;
         let quotaError = false;
+        let modelErrorSummary = '';
 
         if (apiKey) {
-            try {
-                const { parsed, rawText } = await fetchStreetRatesWithOpenRouter(apiKey, model, officialUsdToNgn);
-                aiParsed = parsed;
-                isFallback = false;
-                sources.push(`OpenRouter (${model})`);
+            const failures: string[] = [];
+            for (const model of models) {
+                try {
+                    const { parsed, rawText } = await fetchStreetRatesWithOpenRouter(apiKey, model, officialUsdToNgn);
+                    aiParsed = parsed;
+                    isFallback = false;
+                    sources.push(`OpenRouter (${model})`);
 
-                const modelSources = parsed.sources || [];
-                if (modelSources.length > 0) {
-                    sources.push(...modelSources);
-                }
+                    const modelSources = parsed.sources || [];
+                    if (modelSources.length > 0) {
+                        sources.push(...modelSources);
+                    }
 
-                const lowered = rawText.toLowerCase();
-                if (lowered.includes('ngnrates')) sources.push('NgnRates.com');
-                if (lowered.includes('abokifx')) sources.push('AbokiFX');
-            } catch (err: any) {
-                console.error('OpenRouter failed:', err?.message || err);
-                if (String(err?.message || '').includes('429')) {
-                    quotaError = true;
+                    const lowered = rawText.toLowerCase();
+                    if (lowered.includes('ngnrates')) sources.push('NgnRates.com');
+                    if (lowered.includes('abokifx')) sources.push('AbokiFX');
+                    break;
+                } catch (err: any) {
+                    const msg = String(err?.message || err);
+                    console.error(`OpenRouter failed (${model}):`, msg);
+                    failures.push(`${model}: ${msg}`);
+                    if (msg.includes('429')) {
+                        quotaError = true;
+                    }
                 }
+            }
+            if (isFallback && failures.length > 0) {
+                modelErrorSummary = failures.slice(0, 2).join(' | ');
             }
         }
 
@@ -194,7 +219,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             rates: mergedRates,
             sources: Array.from(new Set(sources)),
             isFallback,
-            error: quotaError ? 'OpenRouter rate limit reached. Using smart estimates.' : null,
+            error: quotaError
+                ? `OpenRouter rate limit reached. Using smart estimates.${modelErrorSummary ? ` ${modelErrorSummary}` : ''}`
+                : modelErrorSummary || null,
         });
     } catch (err: any) {
         console.error('Handler error:', err);
