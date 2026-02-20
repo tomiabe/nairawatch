@@ -4,27 +4,17 @@ import { CurrencyRate } from '../types';
 
 interface RateCardProps {
   rate: CurrencyRate;
+  onOpenTrend?: (rate: CurrencyRate) => void;
 }
 
-const formatPrice = (price: number) => {
-  const parts = price.toLocaleString(undefined, {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 2,
-  }).split('.');
-
+export const RateCard: React.FC<RateCardProps> = ({ rate, onOpenTrend }) => {
   return (
-    <span className="flex items-baseline">
-      <span className="text-lg font-bold">₦{parts[0]}</span>
-      {parts[1] && (
-        <span className="text-xs font-semibold opacity-80">.{parts[1]}</span>
-      )}
-    </span>
-  );
-};
-
-export const RateCard: React.FC<RateCardProps> = ({ rate }) => {
-  return (
-    <div className="bg-white dark:bg-slate-900 rounded-xl shadow-md border border-slate-200 dark:border-slate-800 p-5 hover:shadow-lg transition-all duration-300 group">
+    <button
+      type="button"
+      onClick={() => onOpenTrend?.(rate)}
+      className="w-full text-left bg-white dark:bg-slate-900 rounded-xl shadow-md border border-slate-200 dark:border-slate-800 p-5 hover:shadow-lg transition-all duration-300 group"
+      aria-label={`Open ${rate.code} trend`}
+    >
       <div className="flex justify-between items-start mb-4">
         <div className="flex items-center space-x-3">
           <span className="text-4xl shadow-sm rounded-full bg-slate-50 dark:bg-slate-800 p-1">{rate.flag}</span>
@@ -39,7 +29,6 @@ export const RateCard: React.FC<RateCardProps> = ({ rate }) => {
       </div>
 
       <div className="space-y-4">
-        {/* Parallel Market */}
         <div className="bg-slate-50 dark:bg-slate-950/50 rounded-lg p-3 border border-slate-100 dark:border-slate-800 group-hover:border-emerald-100 dark:group-hover:border-emerald-900/50 transition-colors">
           <div className="flex items-center space-x-2 mb-2">
             <Store className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
@@ -67,7 +56,6 @@ export const RateCard: React.FC<RateCardProps> = ({ rate }) => {
           </div>
         </div>
 
-        {/* Official Rate - Only show if available and different significantly */}
         {rate.official && (
           <div className="flex justify-between items-center px-2 pt-2 border-t border-slate-100 dark:border-slate-800">
             <div className="flex items-center space-x-2">
@@ -77,7 +65,9 @@ export const RateCard: React.FC<RateCardProps> = ({ rate }) => {
             <span className="text-xs font-mono font-medium text-slate-700 dark:text-slate-300">₦{rate.official.toLocaleString()}</span>
           </div>
         )}
+
+        <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">Click card for trend analytics</p>
       </div>
-    </div>
+    </button>
   );
 };

@@ -1,11 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Header } from './components/Header';
 import { Converter } from './components/Converter';
 import { RateCard } from './components/RateCard';
+import { TrendModal } from './components/TrendModal';
 import { fetchLatestRates } from './services/geminiService';
-import { CurrencyRate } from './types';
+import { buildMockTrend } from './services/trendService';
+import { CurrencyRate, TrendPeriod, TrendPoint } from './types';
 import { INITIAL_RATES } from './constants';
-import { ExternalLink, Info, AlertTriangle, WifiOff } from 'lucide-react';
+import { ExternalLink, Info, TrendingDown, TrendingUp, WifiOff } from 'lucide-react';
 
 export default function App() {
   const [rates, setRates] = useState<CurrencyRate[]>(INITIAL_RATES);
@@ -13,29 +15,27 @@ export default function App() {
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [sources, setSources] = useState<string[]>([]);
 
-  // Status State
   const [isOffline, setIsOffline] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string>('');
 
-  // Theme State
   const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
 
-  // Initialize Theme based on time (7 AM - 7 PM = Light)
+  const [selectedCode, setSelectedCode] = useState<string | null>(null);
+  const [trendPeriod, setTrendPeriod] = useState<TrendPeriod>('24h');
+  const [trendSeriesByCode, setTrendSeriesByCode] = useState<Record<string, TrendPoint[]>>({});
+
   useEffect(() => {
     const checkTimeForTheme = () => {
       const hour = new Date().getHours();
-      // Light mode from 7 (7 AM) to 18 (6:59 PM). Dark mode from 19 (7 PM) to 6 (6:59 AM).
       const isDayTime = hour >= 7 && hour < 19;
       setIsDarkMode(!isDayTime);
     };
 
     checkTimeForTheme();
-    // Re-check every minute
     const timer = setInterval(checkTimeForTheme, 60000);
     return () => clearInterval(timer);
   }, []);
 
-  // Apply Theme to DOM
   useEffect(() => {
     if (isDarkMode) {
       document.documentElement.classList.add('dark');
@@ -55,7 +55,6 @@ export default function App() {
       setRates(data.rates);
       setSources(data.sources);
 
-      // Handle fallback/error state
       if (data.isFallback) {
         setIsOffline(true);
         setErrorMsg(data.error || 'Using offline estimates');
@@ -65,7 +64,7 @@ export default function App() {
         setLastUpdated(new Date());
       }
     } catch (err) {
-      console.error("Unexpected error in App:", err);
+      console.error('Unexpected error in App:', err);
       setIsOffline(true);
       setErrorMsg('Unexpected system error');
     } finally {
@@ -75,10 +74,36 @@ export default function App() {
 
   useEffect(() => {
     loadRates();
-    // Refresh every 5 minutes automatically
     const interval = setInterval(loadRates, 5 * 60 * 1000);
     return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    const next: Record<string, TrendPoint[]> = {};
+    rates.forEach((rate) => {
+      next[rate.code] = buildMockTrend(rate, trendPeriod);
+    });
+    setTrendSeriesByCode(next);
+  }, [rates, trendPeriod]);
+
+  const selectedRate = selectedCode ? rates.find((r) => r.code === selectedCode) || null : null;
+  const selectedTrend = selectedRate ? trendSeriesByCode[selectedRate.code] || [] : [];
+
+  const trendLeaders = useMemo(() => {
+    const items = rates.map((rate) => {
+      const points = trendSeriesByCode[rate.code] || [];
+      if (points.length < 2) return { code: rate.code, pct: 0 };
+
+      const first = points[0].sell;
+      const last = points[points.length - 1].sell;
+      const pct = first > 0 ? ((last - first) / first) * 100 : 0;
+      return { code: rate.code, pct };
+    });
+
+    const gainers = [...items].sort((a, b) => b.pct - a.pct).slice(0, 3);
+    const decliners = [...items].sort((a, b) => a.pct - b.pct).slice(0, 3);
+    return { gainers, decliners };
+  }, [rates, trendSeriesByCode]);
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pb-8 transition-colors duration-300">
@@ -91,15 +116,10 @@ export default function App() {
       />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-
-
-
-        {/* Hero Section / Converter */}
         <section className="max-w-3xl mx-auto">
           <Converter rates={rates} />
         </section>
 
-        {/* Live Rates Grid */}
         <section>
           <div className="flex flex-col md:flex-row md:items-start md:justify-between mb-8 gap-6">
             <div>
@@ -131,14 +151,51 @@ export default function App() {
             </div>
           </div>
 
+          <div className="grid sm:grid-cols-2 gap-4 mb-6">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4">
+              <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-3 flex items-center gap-2">
+                <TrendingUp className="w-4 h-4 text-emerald-500" />
+                Top Gainers ({trendPeriod})
+              </h3>
+              <div className="space-y-2">
+                {trendLeaders.gainers.map((item) => (
+                  <div key={item.code} className="flex justify-between text-sm">
+                    <span className="font-medium text-slate-800 dark:text-slate-100">{item.code}</span>
+                    <span className="text-emerald-600 dark:text-emerald-400">+{item.pct.toFixed(2)}%</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4">
+              <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-3 flex items-center gap-2">
+                <TrendingDown className="w-4 h-4 text-red-500" />
+                Top Decliners ({trendPeriod})
+              </h3>
+              <div className="space-y-2">
+                {trendLeaders.decliners.map((item) => (
+                  <div key={item.code} className="flex justify-between text-sm">
+                    <span className="font-medium text-slate-800 dark:text-slate-100">{item.code}</span>
+                    <span className="text-red-600 dark:text-red-400">{item.pct.toFixed(2)}%</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {rates.map((rate) => (
-              <RateCard key={rate.code} rate={rate} />
+              <RateCard key={rate.code} rate={rate} onOpenTrend={() => setSelectedCode(rate.code)} />
             ))}
           </div>
         </section>
 
-        {/* Footer / Disclaimer */}
+        {!!errorMsg && (
+          <section className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/50 rounded-xl px-4 py-3 text-sm text-amber-700 dark:text-amber-300">
+            {errorMsg}
+          </section>
+        )}
+
         <footer className="border-t border-slate-200 dark:border-slate-800 pt-8 mt-8">
           <div className="bg-slate-900 dark:bg-slate-900/50 rounded-2xl p-6 md:p-8 text-slate-300 border border-transparent dark:border-slate-800">
             <div className="grid md:grid-cols-2 gap-8">
@@ -167,7 +224,6 @@ export default function App() {
                   )}
                 </ul>
               </div>
-
             </div>
 
             <div className="mt-8 pt-8 border-t border-slate-800 text-center text-xs text-slate-500">
@@ -175,8 +231,17 @@ export default function App() {
             </div>
           </div>
         </footer>
-
       </main>
+
+      {selectedRate && (
+        <TrendModal
+          rate={selectedRate}
+          points={selectedTrend}
+          period={trendPeriod}
+          onPeriodChange={setTrendPeriod}
+          onClose={() => setSelectedCode(null)}
+        />
+      )}
     </div>
   );
 }

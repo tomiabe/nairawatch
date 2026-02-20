@@ -14,6 +14,14 @@ export interface MarketData {
   source: string;
 }
 
+export type TrendPeriod = '24h' | '7d';
+
+export interface TrendPoint {
+  timestamp: string;
+  buy: number;
+  sell: number;
+}
+
 export enum CurrencyCode {
   NGN = 'NGN',
   USD = 'USD',
