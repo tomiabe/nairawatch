@@ -124,7 +124,7 @@ export default function App() {
           <div className="flex flex-col md:flex-row md:items-start md:justify-between mb-8 gap-6">
             <div>
               <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-1">Current Market Rates</h1>
-              <p className="text-sm text-slate-500 dark:text-slate-400">Tap any card to view trend analytics.</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Tap any card to view trend analytics.</p>
             </div>
 
             <div className="flex flex-col items-start md:items-end gap-2">
@@ -134,8 +134,8 @@ export default function App() {
                     <WifiOff className="w-3 h-3 mr-2" />
                     Offline / Estimates
                   </span>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-500 font-medium md:text-right">
-                    Estimates Mode (Live updates paused)
+                  <p className="text-xs text-slate-500 dark:text-slate-500 font-medium md:text-right">
+                    Live updates paused. Showing estimated rates.
                   </p>
                 </>
               ) : (
