@@ -9,6 +9,135 @@ import { CurrencyRate, TrendPeriod, TrendPoint } from './types';
 import { INITIAL_RATES } from './constants';
 import { ExternalLink, Info, TrendingDown, TrendingUp, WifiOff } from 'lucide-react';
 
+type RateSnapshot = { ts: number; sell: number };
+
+const HISTORY_KEY = 'nairawatch_rate_history_v1';
+const HISTORY_MAX_DAYS = 8;
+const HISTORY_MIN_INTERVAL_MS = 2 * 60 * 1000;
+const HISTORY_MAX_POINTS = 2000;
+
+const REGION_LABELS = ['All', 'Americas', 'Europe', 'Africa', 'Asia', 'Middle East', 'Oceania'] as const;
+type RegionLabel = typeof REGION_LABELS[number];
+
+const REGION_MAP: Record<string, Exclude<RegionLabel, 'All'>> = {
+  USD: 'Americas',
+  CAD: 'Americas',
+  MXN: 'Americas',
+  BRL: 'Americas',
+  ARS: 'Americas',
+  CLP: 'Americas',
+  COP: 'Americas',
+  PEN: 'Americas',
+
+  GBP: 'Europe',
+  EUR: 'Europe',
+  CHF: 'Europe',
+  SEK: 'Europe',
+  NOK: 'Europe',
+  DKK: 'Europe',
+  PLN: 'Europe',
+  CZK: 'Europe',
+  HUF: 'Europe',
+  RON: 'Europe',
+  BGN: 'Europe',
+  UAH: 'Europe',
+  RUB: 'Europe',
+  ISK: 'Europe',
+  TRY: 'Europe',
+
+  ZAR: 'Africa',
+  GHS: 'Africa',
+  XOF: 'Africa',
+  XAF: 'Africa',
+  KES: 'Africa',
+  UGX: 'Africa',
+  TZS: 'Africa',
+  EGP: 'Africa',
+  MAD: 'Africa',
+  TND: 'Africa',
+  DZD: 'Africa',
+  ETB: 'Africa',
+
+  CNY: 'Asia',
+  JPY: 'Asia',
+  INR: 'Asia',
+  PKR: 'Asia',
+  BDT: 'Asia',
+  LKR: 'Asia',
+  NPR: 'Asia',
+  IDR: 'Asia',
+  THB: 'Asia',
+  VND: 'Asia',
+  PHP: 'Asia',
+  HKD: 'Asia',
+  TWD: 'Asia',
+  SGD: 'Asia',
+  KRW: 'Asia',
+  MYR: 'Asia',
+
+  AED: 'Middle East',
+  SAR: 'Middle East',
+  ILS: 'Middle East',
+  QAR: 'Middle East',
+  KWD: 'Middle East',
+  BHD: 'Middle East',
+  OMR: 'Middle East',
+
+  AUD: 'Oceania',
+  NZD: 'Oceania',
+};
+
+const loadRateHistory = (): Record<string, RateSnapshot[]> => {
+  if (typeof window === 'undefined') return {};
+  try {
+    const raw = window.localStorage.getItem(HISTORY_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw) as Record<string, RateSnapshot[]>;
+    return parsed || {};
+  } catch {
+    return {};
+  }
+};
+
+const saveRateHistory = (history: Record<string, RateSnapshot[]>) => {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+  } catch {
+    // Ignore quota or serialization errors
+  }
+};
+
+const appendRateHistory = (
+  prev: Record<string, RateSnapshot[]>,
+  rates: CurrencyRate[],
+): Record<string, RateSnapshot[]> => {
+  const now = Date.now();
+  const cutoff = now - HISTORY_MAX_DAYS * 24 * 60 * 60 * 1000;
+  const next: Record<string, RateSnapshot[]> = { ...prev };
+
+  rates.forEach((rate) => {
+    if (!Number.isFinite(rate.sell) || rate.sell <= 0) return;
+    const list = [...(next[rate.code] || [])];
+    const last = list[list.length - 1];
+
+    if (last && now - last.ts < HISTORY_MIN_INTERVAL_MS && Math.abs(last.sell - rate.sell) < 0.0001) {
+      list[list.length - 1] = { ts: now, sell: rate.sell };
+    } else {
+      list.push({ ts: now, sell: rate.sell });
+    }
+
+    const pruned = list.filter((point) => point.ts >= cutoff);
+    if (pruned.length > HISTORY_MAX_POINTS) {
+      next[rate.code] = pruned.slice(pruned.length - HISTORY_MAX_POINTS);
+    } else {
+      next[rate.code] = pruned;
+    }
+  });
+
+  return next;
+};
+
 export default function App() {
   const [rates, setRates] = useState<CurrencyRate[]>(INITIAL_RATES);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -23,6 +152,8 @@ export default function App() {
   const [selectedCode, setSelectedCode] = useState<string | null>(null);
   const [trendPeriod, setTrendPeriod] = useState<TrendPeriod>('24h');
   const [trendSeriesByCode, setTrendSeriesByCode] = useState<Record<string, TrendPoint[]>>({});
+  const [rateHistory, setRateHistory] = useState<Record<string, RateSnapshot[]>>({});
+  const [regionFilter, setRegionFilter] = useState<RegionLabel>('All');
 
   useEffect(() => {
     const checkTimeForTheme = () => {
@@ -79,6 +210,19 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    setRateHistory(loadRateHistory());
+  }, []);
+
+  useEffect(() => {
+    if (rates.length === 0) return;
+    setRateHistory((prev) => {
+      const next = appendRateHistory(prev, rates);
+      saveRateHistory(next);
+      return next;
+    });
+  }, [rates]);
+
+  useEffect(() => {
     const next: Record<string, TrendPoint[]> = {};
     rates.forEach((rate) => {
       next[rate.code] = buildMockTrend(rate, trendPeriod);
@@ -89,21 +233,35 @@ export default function App() {
   const selectedRate = selectedCode ? rates.find((r) => r.code === selectedCode) || null : null;
   const selectedTrend = selectedRate ? trendSeriesByCode[selectedRate.code] || [] : [];
 
-  const trendLeaders = useMemo(() => {
-    const items = rates.map((rate) => {
-      const points = trendSeriesByCode[rate.code] || [];
-      if (points.length < 2) return { code: rate.code, pct: 0 };
+  const filteredRates = useMemo(() => {
+    if (regionFilter === 'All') return rates;
+    return rates.filter((rate) => (REGION_MAP[rate.code] || 'Asia') === regionFilter);
+  }, [rates, regionFilter]);
 
-      const first = points[0].sell;
-      const last = points[points.length - 1].sell;
-      const pct = first > 0 ? ((last - first) / first) * 100 : 0;
+  const trendLeaders = useMemo(() => {
+    const periodMs = trendPeriod === '7d' ? 7 * 24 * 60 * 60 * 1000 : 24 * 60 * 60 * 1000;
+    const items = rates.map((rate) => {
+      const series = rateHistory[rate.code] || [];
+      if (series.length < 2) return { code: rate.code, pct: 0 };
+
+      const now = Date.now();
+      const target = now - periodMs;
+      let first = series[0];
+      for (let i = series.length - 1; i >= 0; i -= 1) {
+        if (series[i].ts <= target) {
+          first = series[i];
+          break;
+        }
+      }
+      const last = series[series.length - 1];
+      const pct = first.sell > 0 ? ((last.sell - first.sell) / first.sell) * 100 : 0;
       return { code: rate.code, pct };
     });
 
     const gainers = [...items].sort((a, b) => b.pct - a.pct).slice(0, 3);
     const decliners = [...items].sort((a, b) => a.pct - b.pct).slice(0, 3);
     return { gainers, decliners };
-  }, [rates, trendSeriesByCode]);
+  }, [rates, rateHistory, trendPeriod]);
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pb-8 transition-colors duration-300">
@@ -184,8 +342,25 @@ export default function App() {
             </div>
           </div>
 
+          <div className="flex flex-wrap gap-2 mb-6">
+            {REGION_LABELS.map((label) => (
+              <button
+                key={label}
+                type="button"
+                onClick={() => setRegionFilter(label)}
+                className={`px-3 py-1 rounded-full text-xs font-semibold border transition-all ${
+                  regionFilter === label
+                    ? 'bg-emerald-500 text-white border-emerald-500'
+                    : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:border-emerald-300/60 hover:text-emerald-600 dark:hover:text-emerald-400'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {rates.map((rate) => (
+            {filteredRates.map((rate) => (
               <RateCard key={rate.code} rate={rate} onOpenTrend={() => setSelectedCode(rate.code)} />
             ))}
           </div>

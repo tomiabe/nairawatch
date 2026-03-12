@@ -30,6 +30,46 @@ const FALLBACK_RATES: any[] = [
     { code: 'BRL', name: 'Brazilian Real', flag: '🇧🇷', buy: 280, sell: 300 },
     { code: 'KRW', name: 'South Korean Won', flag: '🇰🇷', buy: 1.1, sell: 1.3 },
     { code: 'MYR', name: 'Malaysian Ringgit', flag: '🇲🇾', buy: 350, sell: 370 },
+    { code: 'SEK', name: 'Swedish Krona', flag: '🇸🇪', buy: 150, sell: 160 },
+    { code: 'NOK', name: 'Norwegian Krone', flag: '🇳🇴', buy: 150, sell: 162 },
+    { code: 'DKK', name: 'Danish Krone', flag: '🇩🇰', buy: 235, sell: 250 },
+    { code: 'PLN', name: 'Polish Zloty', flag: '🇵🇱', buy: 420, sell: 440 },
+    { code: 'MXN', name: 'Mexican Peso', flag: '🇲🇽', buy: 92, sell: 98 },
+    { code: 'NZD', name: 'New Zealand Dollar', flag: '🇳🇿', buy: 960, sell: 990 },
+    { code: 'HKD', name: 'Hong Kong Dollar', flag: '🇭🇰', buy: 200, sell: 210 },
+    { code: 'TWD', name: 'New Taiwan Dollar', flag: '🇹🇼', buy: 48, sell: 52 },
+    { code: 'THB', name: 'Thai Baht', flag: '🇹🇭', buy: 43, sell: 46 },
+    { code: 'IDR', name: 'Indonesian Rupiah', flag: '🇮🇩', buy: 0.09, sell: 0.11 },
+    { code: 'PHP', name: 'Philippine Peso', flag: '🇵🇭', buy: 28, sell: 31 },
+    { code: 'VND', name: 'Vietnamese Dong', flag: '🇻🇳', buy: 0.05, sell: 0.06 },
+    { code: 'PKR', name: 'Pakistani Rupee', flag: '🇵🇰', buy: 5.5, sell: 6.2 },
+    { code: 'BDT', name: 'Bangladeshi Taka', flag: '🇧🇩', buy: 14, sell: 15.5 },
+    { code: 'LKR', name: 'Sri Lankan Rupee', flag: '🇱🇰', buy: 4.8, sell: 5.5 },
+    { code: 'NPR', name: 'Nepalese Rupee', flag: '🇳🇵', buy: 11, sell: 12.5 },
+    { code: 'RUB', name: 'Russian Ruble', flag: '🇷🇺', buy: 17, sell: 19 },
+    { code: 'UAH', name: 'Ukrainian Hryvnia', flag: '🇺🇦', buy: 42, sell: 46 },
+    { code: 'CZK', name: 'Czech Koruna', flag: '🇨🇿', buy: 66, sell: 72 },
+    { code: 'HUF', name: 'Hungarian Forint', flag: '🇭🇺', buy: 4.2, sell: 4.9 },
+    { code: 'RON', name: 'Romanian Leu', flag: '🇷🇴', buy: 340, sell: 365 },
+    { code: 'BGN', name: 'Bulgarian Lev', flag: '🇧🇬', buy: 860, sell: 900 },
+    { code: 'ISK', name: 'Icelandic Krona', flag: '🇮🇸', buy: 11, sell: 12.5 },
+    { code: 'ARS', name: 'Argentine Peso', flag: '🇦🇷', buy: 1.8, sell: 2.3 },
+    { code: 'CLP', name: 'Chilean Peso', flag: '🇨🇱', buy: 1.6, sell: 2.0 },
+    { code: 'COP', name: 'Colombian Peso', flag: '🇨🇴', buy: 0.38, sell: 0.48 },
+    { code: 'PEN', name: 'Peruvian Sol', flag: '🇵🇪', buy: 420, sell: 445 },
+    { code: 'XAF', name: 'CFA Franc (Central)', flag: '🇨🇲', buy: 2.4, sell: 2.8 },
+    { code: 'UGX', name: 'Ugandan Shilling', flag: '🇺🇬', buy: 0.41, sell: 0.5 },
+    { code: 'TZS', name: 'Tanzanian Shilling', flag: '🇹🇿', buy: 0.55, sell: 0.65 },
+    { code: 'EGP', name: 'Egyptian Pound', flag: '🇪🇬', buy: 50, sell: 55 },
+    { code: 'MAD', name: 'Moroccan Dirham', flag: '🇲🇦', buy: 155, sell: 170 },
+    { code: 'TND', name: 'Tunisian Dinar', flag: '🇹🇳', buy: 500, sell: 540 },
+    { code: 'DZD', name: 'Algerian Dinar', flag: '🇩🇿', buy: 11, sell: 12.5 },
+    { code: 'ETB', name: 'Ethiopian Birr', flag: '🇪🇹', buy: 28, sell: 32 },
+    { code: 'ILS', name: 'Israeli New Shekel', flag: '🇮🇱', buy: 420, sell: 450 },
+    { code: 'QAR', name: 'Qatari Riyal', flag: '🇶🇦', buy: 430, sell: 450 },
+    { code: 'KWD', name: 'Kuwaiti Dinar', flag: '🇰🇼', buy: 5150, sell: 5350 },
+    { code: 'BHD', name: 'Bahraini Dinar', flag: '🇧🇭', buy: 4180, sell: 4350 },
+    { code: 'OMR', name: 'Omani Rial', flag: '🇴🇲', buy: 4100, sell: 4300 },
 ];
 
 type ParsedAiResponse = {
@@ -80,7 +120,7 @@ async function fetchStreetRatesWithOpenRouter(
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 15000);
     const prompt = `Return ONLY valid JSON for current NGN parallel market rates for these currencies:
-USD, GBP, EUR, CAD, AUD, CNY, AED, SAR, CHF, JPY, ZAR, GHS, INR, XOF, KES, SGD, TRY, BRL, KRW, MYR.
+USD, GBP, EUR, CAD, AUD, CNY, AED, SAR, CHF, JPY, ZAR, GHS, INR, XOF, KES, SGD, TRY, BRL, KRW, MYR, SEK, NOK, DKK, PLN, MXN, NZD, HKD, TWD, THB, IDR, PHP, VND, PKR, BDT, LKR, NPR, RUB, UAH, CZK, HUF, RON, BGN, ISK, ARS, CLP, COP, PEN, XAF, UGX, TZS, EGP, MAD, TND, DZD, ETB, ILS, QAR, KWD, BHD, OMR.
 
 Rules:
 - Output object shape must be: {"rates": [{"code":"USD","buy":1600,"sell":1620}], "sources": ["NgnRates.com", "AbokiFX"]}
