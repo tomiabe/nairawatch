@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { X } from 'lucide-react';
 import { CurrencyRate, TrendPeriod, TrendPoint } from '../types';
 import { TrendChart } from './TrendChart';
+import { EMOJI_STYLE } from './emojiStyles';
 
 interface TrendModalProps {
   rate: CurrencyRate;
@@ -43,7 +44,7 @@ export const TrendModal: React.FC<TrendModalProps> = ({
         <div className="px-5 py-4 border-b border-slate-200 dark:border-slate-700 flex justify-between items-start gap-4">
           <div>
             <h3 className="text-xl font-bold text-slate-900 dark:text-white">
-              {rate.flag} {rate.code}/NGN Trend
+              <span style={EMOJI_STYLE}>{rate.flag}</span> {rate.code}/NGN Trend
             </h3>
             <p className="text-sm text-slate-500 dark:text-slate-400">{rate.name}</p>
           </div>
@@ -90,6 +91,6 @@ export const TrendModal: React.FC<TrendModalProps> = ({
 const Stat: React.FC<{ label: string; value: string }> = ({ label, value }) => (
   <div className="bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 rounded-xl p-3">
     <p className="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400">{label}</p>
-    <p className="text-sm font-semibold text-slate-900 dark:text-white mt-1">{value}</p>
+    <p className="text-sm font-semibold text-slate-900 dark:text-white mt-1 currency-amount">{value}</p>
   </div>
 );

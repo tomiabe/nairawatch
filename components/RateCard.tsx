@@ -1,6 +1,7 @@
 import React from 'react';
 import { ArrowUpRight, ArrowDownLeft, Building2, Store } from 'lucide-react';
 import { CurrencyRate } from '../types';
+import { EMOJI_STYLE } from './emojiStyles';
 
 interface RateCardProps {
   rate: CurrencyRate;
@@ -17,7 +18,12 @@ export const RateCard: React.FC<RateCardProps> = ({ rate, onOpenTrend }) => {
     >
       <div className="flex justify-between items-start mb-4">
         <div className="flex items-center space-x-3">
-          <span className="text-4xl shadow-sm rounded-full bg-slate-50 dark:bg-slate-800 p-1">{rate.flag}</span>
+          <span
+            className="grid place-items-center w-12 h-12 rounded-full bg-slate-50 dark:bg-slate-800 shadow-sm"
+            style={EMOJI_STYLE}
+          >
+            <span className="block text-4xl leading-none translate-y-[1px]">{rate.flag}</span>
+          </span>
           <div>
             <h2 className="font-bold text-slate-900 dark:text-white text-lg">{rate.code}</h2>
             <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">{rate.name}</p>
@@ -41,7 +47,7 @@ export const RateCard: React.FC<RateCardProps> = ({ rate, onOpenTrend }) => {
                 <ArrowDownLeft className="h-3 w-3 text-red-500 dark:text-red-400 flex-shrink-0" />
               </div>
               <div className="text-slate-900 dark:text-slate-100">
-                <span className="text-lg font-bold">₦{rate.buy.toLocaleString()}</span>
+                <span className="text-lg font-bold currency-amount">₦{rate.buy.toLocaleString()}</span>
               </div>
             </div>
             <div className="text-right border-l border-slate-200 dark:border-slate-800 pl-4">
@@ -50,7 +56,7 @@ export const RateCard: React.FC<RateCardProps> = ({ rate, onOpenTrend }) => {
                 <ArrowUpRight className="h-3 w-3 text-emerald-500 dark:text-emerald-400 flex-shrink-0" />
               </div>
               <div className="text-emerald-600 dark:text-emerald-400">
-                <span className="text-lg font-bold">₦{rate.sell.toLocaleString()}</span>
+                <span className="text-lg font-bold currency-amount">₦{rate.sell.toLocaleString()}</span>
               </div>
             </div>
           </div>
@@ -62,7 +68,7 @@ export const RateCard: React.FC<RateCardProps> = ({ rate, onOpenTrend }) => {
               <Building2 className="w-3 h-3 text-blue-500 dark:text-blue-400" />
               <span className="text-xs text-slate-500 dark:text-slate-400">Official CBN</span>
             </div>
-            <span className="text-xs font-mono font-medium text-slate-700 dark:text-slate-300">₦{rate.official.toLocaleString()}</span>
+            <span className="text-xs font-mono font-medium text-slate-700 dark:text-slate-300 currency-amount">₦{rate.official.toLocaleString()}</span>
           </div>
         )}
       </div>

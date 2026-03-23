@@ -263,6 +263,13 @@ export default function App() {
     return { gainers, decliners };
   }, [rates, rateHistory, trendPeriod]);
 
+  const currencyNameByCode = useMemo(() => {
+    return rates.reduce<Record<string, string>>((acc, rate) => {
+      acc[rate.code] = rate.name;
+      return acc;
+    }, {});
+  }, [rates]);
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pb-8 transition-colors duration-300">
       <Header
@@ -318,9 +325,15 @@ export default function App() {
               </h3>
               <div className="space-y-2">
                 {trendLeaders.gainers.map((item) => (
-                  <div key={item.code} className="flex justify-between text-sm">
-                    <span className="font-medium text-slate-800 dark:text-slate-100">{item.code}</span>
-                    <span className="text-emerald-600 dark:text-emerald-400">+{item.pct.toFixed(2)}%</span>
+                  <div key={item.code} className="flex items-center gap-3 text-sm">
+                    <div className="min-w-0">
+                      <div className="font-medium text-slate-800 dark:text-slate-100">{item.code}</div>
+                      <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                        {currencyNameByCode[item.code] || item.code}
+                      </div>
+                    </div>
+                    <span className="flex-1 border-b border-dotted border-slate-200 dark:border-slate-700/60" />
+                    <span className="text-emerald-600 dark:text-emerald-400 tabular-nums">+{item.pct.toFixed(2)}%</span>
                   </div>
                 ))}
               </div>
@@ -333,9 +346,15 @@ export default function App() {
               </h3>
               <div className="space-y-2">
                 {trendLeaders.decliners.map((item) => (
-                  <div key={item.code} className="flex justify-between text-sm">
-                    <span className="font-medium text-slate-800 dark:text-slate-100">{item.code}</span>
-                    <span className="text-red-600 dark:text-red-400">{item.pct.toFixed(2)}%</span>
+                  <div key={item.code} className="flex items-center gap-3 text-sm">
+                    <div className="min-w-0">
+                      <div className="font-medium text-slate-800 dark:text-slate-100">{item.code}</div>
+                      <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                        {currencyNameByCode[item.code] || item.code}
+                      </div>
+                    </div>
+                    <span className="flex-1 border-b border-dotted border-slate-200 dark:border-slate-700/60" />
+                    <span className="text-red-600 dark:text-red-400 tabular-nums">{item.pct.toFixed(2)}%</span>
                   </div>
                 ))}
               </div>
