@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ArrowRightLeft, Calculator, Search, Check, ChevronDown } from 'lucide-react';
 import { CurrencyRate, CurrencyCode } from '../types';
+import { EMOJI_STYLE } from './emojiStyles';
 
 interface ConverterProps {
     rates: CurrencyRate[];
@@ -59,7 +60,9 @@ const CurrencySelect: React.FC<CurrencySelectProps> = ({ label, value, onChange,
                     className="w-full bg-slate-100 dark:bg-slate-800 border border-transparent hover:border-emerald-500/50 hover:bg-slate-200 dark:hover:bg-slate-700/50 rounded-xl px-3 py-3 flex items-center justify-between transition-all group"
                 >
                     <div className="flex items-center gap-3 overflow-hidden">
-                        <span className="text-2xl flex-shrink-0">{selectedCurrency.flag}</span>
+                        <span className="text-2xl flex-shrink-0 leading-none" style={EMOJI_STYLE}>
+                          {selectedCurrency.flag}
+                        </span>
                         <div className="text-left min-w-0">
                             <div className="font-bold text-slate-900 dark:text-white leading-tight truncate">
                                 {selectedCurrency.code}
@@ -99,7 +102,9 @@ const CurrencySelect: React.FC<CurrencySelectProps> = ({ label, value, onChange,
                                     className={`w-full px-4 py-3 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors ${value === currency.code ? 'bg-emerald-50 dark:bg-emerald-900/20' : ''}`}
                                 >
                                     <div className="flex items-center gap-3">
-                                        <span className="text-2xl">{currency.flag}</span>
+                                        <span className="text-2xl leading-none" style={EMOJI_STYLE}>
+                                          {currency.flag}
+                                        </span>
                                         <div className="text-left">
                                             <div className={`font-medium ${value === currency.code ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-700 dark:text-slate-200'}`}>
                                                 {currency.code}
