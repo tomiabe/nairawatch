@@ -1,5 +1,13 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
+const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
+const DEFAULT_GROQ_MODEL = 'llama-3.3-70b-versatile';
+const DEFAULT_GROQ_FALLBACK_MODELS = [
+    'llama-3.3-70b-versatile',
+    'mixtral-8x7b-32768',
+    'gemma2-9b-it',
+];
+
 const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
 const DEFAULT_OPENROUTER_MODEL = 'google/gemma-3-4b-it:free';
 const DEFAULT_OPENROUTER_FALLBACK_MODELS = [
@@ -112,10 +120,12 @@ function extractJsonPayload(text: string): ParsedAiResponse {
     }
 }
 
-async function fetchStreetRatesWithOpenRouter(
+async function fetchStreetRatesWithAI(
+    apiUrl: string,
     apiKey: string,
     model: string,
     officialUsdToNgn: number,
+    provider: string
 ): Promise<{ parsed: ParsedAiResponse; rawText: string }> {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 15000);
@@ -130,15 +140,20 @@ Rules:
 - Official USD/NGN reference is about ${officialUsdToNgn}.`;
 
     try {
-        const response = await fetch(OPENROUTER_API_URL, {
+        const headers: Record<string, string> = {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${apiKey}`,
+        };
+
+        if (provider === 'OpenRouter') {
+            headers['HTTP-Referer'] = process.env.OPENROUTER_SITE_URL || 'https://nairawatch.vercel.app';
+            headers['X-Title'] = process.env.OPENROUTER_APP_NAME || 'NairaWatch';
+        }
+
+        const response = await fetch(apiUrl, {
             method: 'POST',
             signal: controller.signal,
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${apiKey}`,
-                'HTTP-Referer': process.env.OPENROUTER_SITE_URL || 'https://nairawatch.vercel.app',
-                'X-Title': process.env.OPENROUTER_APP_NAME || 'NairaWatch',
-            },
+            headers,
             body: JSON.stringify({
                 model,
                 temperature: 0.1,
@@ -149,14 +164,14 @@ Rules:
 
         if (!response.ok) {
             const text = await response.text();
-            throw new Error(`OpenRouter ${response.status}: ${text}`);
+            throw new Error(`${provider} ${response.status}: ${text}`);
         }
 
         const data = await response.json();
         const rawText = data?.choices?.[0]?.message?.content;
 
         if (!rawText || typeof rawText !== 'string') {
-            throw new Error('OpenRouter returned empty completion content');
+            throw new Error(`${provider} returned empty completion content`);
         }
 
         return {
@@ -168,7 +183,16 @@ Rules:
     }
 }
 
-function getModelCandidates() {
+function getGroqCandidates() {
+    const primary = process.env.GROQ_MODEL || DEFAULT_GROQ_MODEL;
+    const extra = (process.env.GROQ_MODELS || '')
+        .split(',')
+        .map((m) => m.trim())
+        .filter(Boolean);
+    return Array.from(new Set([primary, ...extra, ...DEFAULT_GROQ_FALLBACK_MODELS]));
+}
+
+function getOpenRouterCandidates() {
     const primary = process.env.OPENROUTER_MODEL || DEFAULT_OPENROUTER_MODEL;
     const extra = (process.env.OPENROUTER_MODELS || '')
         .split(',')
@@ -180,8 +204,8 @@ function getModelCandidates() {
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
     try {
-        const apiKey = process.env.OPENROUTER_API_KEY || process.env.API_KEY;
-        const models = getModelCandidates();
+        const groqKey = process.env.GROQ_API_KEY;
+        const orKey = process.env.OPENROUTER_API_KEY || process.env.API_KEY;
 
         const officialData = await fetchOfficialRates();
         const officialUsdToNgn = officialData?.usdToNgn || 1530;
@@ -201,14 +225,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         let quotaError = false;
         let modelErrorSummary = '';
 
-        if (apiKey) {
+        const providersToTry = [];
+        if (groqKey) {
+            getGroqCandidates().forEach((m) =>
+                providersToTry.push({ provider: 'Groq', url: GROQ_API_URL, key: groqKey, model: m }),
+            );
+        }
+        if (orKey) {
+            getOpenRouterCandidates().forEach((m) =>
+                providersToTry.push({ provider: 'OpenRouter', url: OPENROUTER_API_URL, key: orKey, model: m }),
+            );
+        }
+
+        if (providersToTry.length > 0) {
             const failures: string[] = [];
-            for (const model of models) {
+            for (const { provider, url, key, model } of providersToTry) {
                 try {
-                    const { parsed, rawText } = await fetchStreetRatesWithOpenRouter(apiKey, model, officialUsdToNgn);
+                    const { parsed, rawText } = await fetchStreetRatesWithAI(url, key, model, officialUsdToNgn, provider);
                     aiParsed = parsed;
                     isFallback = false;
-                    sources.push(`OpenRouter (${model})`);
+                    sources.push(`${provider} (${model})`);
 
                     const modelSources = parsed.sources || [];
                     if (modelSources.length > 0) {
@@ -221,7 +257,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     break;
                 } catch (err: any) {
                     const msg = String(err?.message || err);
-                    console.error(`OpenRouter failed (${model}):`, msg);
+                    console.error(`${provider} failed (${model}):`, msg);
                     failures.push(`${model}: ${msg}`);
                     if (msg.includes('429')) {
                         quotaError = true;
@@ -260,7 +296,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             sources: Array.from(new Set(sources)),
             isFallback,
             error: quotaError
-                ? `OpenRouter rate limit reached. Using smart estimates.${modelErrorSummary ? ` ${modelErrorSummary}` : ''}`
+                ? `API rate limit reached. Using smart estimates.${modelErrorSummary ? ` ${modelErrorSummary}` : ''}`
                 : modelErrorSummary || null,
         });
     } catch (err: any) {
