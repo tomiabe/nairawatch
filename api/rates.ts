@@ -4,7 +4,7 @@ const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
 const DEFAULT_GROQ_MODEL = 'llama-3.3-70b-versatile';
 const DEFAULT_GROQ_FALLBACK_MODELS = [
     'llama-3.3-70b-versatile',
-    'mixtral-8x7b-32768',
+    'llama-3.1-8b-instant',
     'gemma2-9b-it',
 ];
 
@@ -157,7 +157,7 @@ Rules:
             body: JSON.stringify({
                 model,
                 temperature: 0.1,
-                max_tokens: 1000,
+                max_tokens: 4096,
                 messages: [{ role: 'user', content: prompt }],
             }),
         });
