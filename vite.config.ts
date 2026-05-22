@@ -1,14 +1,11 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
-// https://vitejs.dev/config/
-const apiProxyPort = process.env.API_PROXY_PORT || '3100';
+const apiProxyPort = process.env.API_PROXY_PORT || '8787';
 
 export default defineConfig({
+  base: '/NairaWatch/',
   plugins: [react()],
-  define: {
-    'process.env.API_KEY': JSON.stringify(process.env.API_KEY || process.env.GEMINI_API_KEY),
-  },
   server: {
     proxy: {
       '/api': {
