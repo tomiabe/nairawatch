@@ -8,12 +8,9 @@ export interface RatesResponse {
   error?: string;
 }
 
-const API_ENDPOINT = '/api/rates';
+const API_ENDPOINT = import.meta.env.VITE_API_URL || '/api/rates';
 
-/**
- * Fetches the latest rates using the AI-powered Vercel function.
- * Specifically designed to ground in sources like NgnRates.com
- */
+
 export const fetchLatestRates = async (): Promise<RatesResponse> => {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout for AI search

@@ -1,0 +1,7 @@
+name = "nairawatch-api"
+main = "worker/index.ts"
+compatibility_date = "2024-11-01"
+
+[vars]
+OPENROUTER_SITE_URL = "https://tomiabe.github.io/NairaWatch"
+OPENROUTER_APP_NAME = "NairaWatch"
