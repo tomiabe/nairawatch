@@ -4,7 +4,7 @@ import react from '@vitejs/plugin-react';
 const apiProxyPort = process.env.API_PROXY_PORT || '8787';
 
 export default defineConfig({
-  base: '/NairaWatch/',
+  base: '/nairawatch/',
   plugins: [react()],
   server: {
     proxy: {
