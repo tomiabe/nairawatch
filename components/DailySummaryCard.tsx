@@ -3,7 +3,8 @@ import { Sparkles } from 'lucide-react';
 
 export type DailySummaryItem = {
   key: string;
-  label: string;
+  code: string;
+  name: string;
   value: string;
   tone?: 'up' | 'down' | 'neutral';
 };
@@ -41,10 +42,13 @@ export const DailySummaryCard: React.FC<DailySummaryCardProps> = ({
                   : 'text-slate-700 dark:text-slate-200';
 
             return (
-              <li key={item.key} className="flex items-baseline gap-3 text-sm">
-                <span className="min-w-0 text-slate-700 dark:text-slate-200">{item.label}</span>
+              <li key={item.key} className="flex items-center gap-3 text-sm min-w-0">
+                <span className="min-w-0">
+                  <span className="block font-medium text-slate-800 dark:text-slate-100">{item.code}</span>
+                  <span className="block text-[11px] text-slate-500 dark:text-slate-400 truncate">{item.name}</span>
+                </span>
                 <span className="flex-1 border-b border-dotted border-slate-200 dark:border-slate-700/60" />
-                <span className={`tabular-nums font-semibold ${tone}`}>{item.value}</span>
+                <span className={`tabular-nums ${tone} text-right whitespace-nowrap`}>{item.value}</span>
               </li>
             );
           })}
@@ -53,4 +57,3 @@ export const DailySummaryCard: React.FC<DailySummaryCardProps> = ({
     </div>
   );
 };
-
