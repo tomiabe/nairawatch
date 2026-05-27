@@ -41,10 +41,10 @@ export const DailySummaryCard: React.FC<DailySummaryCardProps> = ({
                   : 'text-slate-700 dark:text-slate-200';
 
             return (
-              <li key={item.key} className="flex items-baseline gap-3 text-sm">
-                <span className="min-w-0 text-slate-700 dark:text-slate-200">{item.label}</span>
+              <li key={item.key} className="flex items-baseline gap-3 text-sm min-w-0">
+                <span className="min-w-0 text-slate-700 dark:text-slate-200 truncate">{item.label}</span>
                 <span className="flex-1 border-b border-dotted border-slate-200 dark:border-slate-700/60" />
-                <span className={`tabular-nums font-semibold ${tone}`}>{item.value}</span>
+                <span className={`tabular-nums font-semibold ${tone} text-right whitespace-nowrap`}>{item.value}</span>
               </li>
             );
           })}
@@ -53,4 +53,3 @@ export const DailySummaryCard: React.FC<DailySummaryCardProps> = ({
     </div>
   );
 };
-
