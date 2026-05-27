@@ -507,23 +507,6 @@ export default function App() {
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-2 mb-6">
-            {REGION_LABELS.map((label) => (
-              <button
-                key={label}
-                type="button"
-                onClick={() => setRegionFilter(label)}
-                className={`px-3 py-1 rounded-full text-xs font-semibold border transition-all ${
-                  regionFilter === label
-                    ? 'bg-emerald-500 text-white border-emerald-500'
-                    : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:border-emerald-300/60 hover:text-emerald-600 dark:hover:text-emerald-400'
-                }`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-
           <div className="mb-6">
             <div className="flex items-end justify-between gap-4 mb-3">
               <div>
@@ -563,6 +546,23 @@ export default function App() {
           </div>
 
           <div className="my-6 border-t border-slate-200 dark:border-slate-800" />
+
+          <div className="flex flex-wrap gap-2 mb-6">
+            {REGION_LABELS.map((label) => (
+              <button
+                key={label}
+                type="button"
+                onClick={() => setRegionFilter(label)}
+                className={`px-3 py-1 rounded-full text-xs font-semibold border transition-all ${
+                  regionFilter === label
+                    ? 'bg-emerald-500 text-white border-emerald-500'
+                    : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:border-emerald-300/60 hover:text-emerald-600 dark:hover:text-emerald-400'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {filteredRates.map((rate) => (
