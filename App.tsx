@@ -356,8 +356,6 @@ export default function App() {
         const sells24 = window24.map((p) => p.sell).filter((s) => Number.isFinite(s) && s > 0);
         const min24 = sells24.length > 0 ? Math.min(...sells24) : currentSell;
         const max24 = sells24.length > 0 ? Math.max(...sells24) : currentSell;
-        const range24 = max24 - min24;
-
         return {
           code: rate.code,
           name: rate.name,
@@ -365,7 +363,6 @@ export default function App() {
           pct24,
           delta7d,
           pct7d,
-          range24,
         };
       })
       .filter(Boolean) as Array<{
@@ -375,7 +372,6 @@ export default function App() {
       pct24: number;
       delta7d: number;
       pct7d: number;
-      range24: number;
     }>;
 
     if (stats.length < 3) {
@@ -385,41 +381,27 @@ export default function App() {
     const topUp24 = [...stats].sort((a, b) => b.pct24 - a.pct24)[0];
     const topDown24 = [...stats].sort((a, b) => a.pct24 - b.pct24)[0];
     const biggestWeekMove = [...stats].sort((a, b) => Math.abs(b.pct7d) - Math.abs(a.pct7d))[0];
-    const widestSwing24 = [...stats].sort((a, b) => b.range24 - a.range24)[0];
-
-    const upCount = stats.filter((s) => s.pct24 > 0.01).length;
-    const downCount = stats.filter((s) => s.pct24 < -0.01).length;
-
     const items: DailySummaryItem[] = [
       {
         key: 'top_up_24h',
-        label: `${topUp24.code} moved up (24h)`,
-        value: `₦${formatNgn(Math.abs(topUp24.delta24))} (${formatPct(topUp24.pct24)})`,
+        code: topUp24.code,
+        name: topUp24.name,
+        value: `24h +₦${formatNgn(Math.abs(topUp24.delta24))} (${formatPct(topUp24.pct24)})`,
         tone: 'up',
       },
       {
         key: 'top_down_24h',
-        label: `${topDown24.code} moved down (24h)`,
-        value: `₦${formatNgn(Math.abs(topDown24.delta24))} (${formatPct(topDown24.pct24)})`,
+        code: topDown24.code,
+        name: topDown24.name,
+        value: `24h -₦${formatNgn(Math.abs(topDown24.delta24))} (${formatPct(topDown24.pct24)})`,
         tone: 'down',
       },
       {
         key: 'week_mover',
-        label: `Biggest move (7d)`,
-        value: `${biggestWeekMove.code} ₦${formatNgn(Math.abs(biggestWeekMove.delta7d))} (${formatPct(biggestWeekMove.pct7d)})`,
+        code: biggestWeekMove.code,
+        name: biggestWeekMove.name,
+        value: `7d ${biggestWeekMove.pct7d >= 0 ? '+' : ''}₦${formatNgn(Math.abs(biggestWeekMove.delta7d))} (${formatPct(biggestWeekMove.pct7d)})`,
         tone: biggestWeekMove.pct7d >= 0 ? 'up' : 'down',
-      },
-      {
-        key: 'breadth',
-        label: `Market breadth (24h)`,
-        value: `${upCount} up / ${downCount} down`,
-        tone: 'neutral',
-      },
-      {
-        key: 'swing',
-        label: `Widest 24h swing`,
-        value: `${widestSwing24.code} ₦${formatNgn(widestSwing24.range24)}`,
-        tone: 'neutral',
       },
     ];
 

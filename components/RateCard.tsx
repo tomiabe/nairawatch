@@ -21,10 +21,10 @@ export const RateCard: React.FC<RateCardProps> = ({ rate, onOpenTrend, isWatched
       <div className="flex justify-between items-start mb-4">
         <div className="flex items-center space-x-3">
           <span
-            className="grid place-items-center w-12 h-12 rounded-full bg-slate-50 dark:bg-slate-800 shadow-sm"
+            className="grid place-items-center w-12 h-12 md:w-11 md:h-11 rounded-full bg-slate-50 dark:bg-slate-800 shadow-sm flex-shrink-0"
             style={EMOJI_STYLE}
           >
-            <span className="block text-4xl leading-none translate-y-[1px]">{rate.flag}</span>
+            <span className="block text-4xl md:text-3xl leading-none translate-y-[1px]">{rate.flag}</span>
           </span>
           <div>
             <h2 className="font-bold text-slate-900 dark:text-white text-lg">{rate.code}</h2>
