@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Header } from './components/Header';
 import { Converter } from './components/Converter';
 import { RateCard } from './components/RateCard';
+import { DailySummaryCard, DailySummaryItem } from './components/DailySummaryCard';
 import { TrendModal } from './components/TrendModal';
 import { fetchLatestRates } from './services/geminiService';
 import { buildMockTrend } from './services/trendService';
@@ -263,6 +264,118 @@ export default function App() {
     return { gainers, decliners };
   }, [rates, rateHistory, trendPeriod]);
 
+  const dailySummary = useMemo(() => {
+    const now = Date.now();
+    const dayMs = 24 * 60 * 60 * 1000;
+    const weekMs = 7 * dayMs;
+    const target24 = now - dayMs;
+    const target7d = now - weekMs;
+
+    const formatNgn = (value: number) =>
+      new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(value);
+    const formatPct = (value: number) =>
+      `${value >= 0 ? '+' : ''}${value.toFixed(2)}%`;
+
+    const findAtOrBefore = (series: RateSnapshot[], targetTs: number) => {
+      if (series.length === 0) return null;
+      for (let i = series.length - 1; i >= 0; i -= 1) {
+        if (series[i].ts <= targetTs) return series[i];
+      }
+      return series[0];
+    };
+
+    const stats = rates
+      .map((rate) => {
+        const series = rateHistory[rate.code] || [];
+        if (series.length < 2) return null;
+
+        const first24 = findAtOrBefore(series, target24);
+        const first7d = findAtOrBefore(series, target7d);
+        const lastPoint = series[series.length - 1];
+        const currentSell = Number.isFinite(rate.sell) && rate.sell > 0 ? rate.sell : lastPoint.sell;
+
+        if (!first24 || !first7d || first24.sell <= 0 || first7d.sell <= 0) return null;
+
+        const delta24 = currentSell - first24.sell;
+        const pct24 = (delta24 / first24.sell) * 100;
+
+        const delta7d = currentSell - first7d.sell;
+        const pct7d = (delta7d / first7d.sell) * 100;
+
+        const window24 = series.filter((p) => p.ts >= target24);
+        const sells24 = window24.map((p) => p.sell).filter((s) => Number.isFinite(s) && s > 0);
+        const min24 = sells24.length > 0 ? Math.min(...sells24) : currentSell;
+        const max24 = sells24.length > 0 ? Math.max(...sells24) : currentSell;
+        const range24 = max24 - min24;
+
+        return {
+          code: rate.code,
+          name: rate.name,
+          delta24,
+          pct24,
+          delta7d,
+          pct7d,
+          range24,
+        };
+      })
+      .filter(Boolean) as Array<{
+      code: string;
+      name: string;
+      delta24: number;
+      pct24: number;
+      delta7d: number;
+      pct7d: number;
+      range24: number;
+    }>;
+
+    if (stats.length < 3) {
+      return { isReady: false, items: [] as DailySummaryItem[] };
+    }
+
+    const topUp24 = [...stats].sort((a, b) => b.pct24 - a.pct24)[0];
+    const topDown24 = [...stats].sort((a, b) => a.pct24 - b.pct24)[0];
+    const biggestWeekMove = [...stats].sort((a, b) => Math.abs(b.pct7d) - Math.abs(a.pct7d))[0];
+    const widestSwing24 = [...stats].sort((a, b) => b.range24 - a.range24)[0];
+
+    const upCount = stats.filter((s) => s.pct24 > 0.01).length;
+    const downCount = stats.filter((s) => s.pct24 < -0.01).length;
+
+    const items: DailySummaryItem[] = [
+      {
+        key: 'top_up_24h',
+        label: `${topUp24.code} moved up (24h)`,
+        value: `₦${formatNgn(Math.abs(topUp24.delta24))} (${formatPct(topUp24.pct24)})`,
+        tone: 'up',
+      },
+      {
+        key: 'top_down_24h',
+        label: `${topDown24.code} moved down (24h)`,
+        value: `₦${formatNgn(Math.abs(topDown24.delta24))} (${formatPct(topDown24.pct24)})`,
+        tone: 'down',
+      },
+      {
+        key: 'week_mover',
+        label: `Biggest move (7d)`,
+        value: `${biggestWeekMove.code} ₦${formatNgn(Math.abs(biggestWeekMove.delta7d))} (${formatPct(biggestWeekMove.pct7d)})`,
+        tone: biggestWeekMove.pct7d >= 0 ? 'up' : 'down',
+      },
+      {
+        key: 'breadth',
+        label: `Market breadth (24h)`,
+        value: `${upCount} up / ${downCount} down`,
+        tone: 'neutral',
+      },
+      {
+        key: 'swing',
+        label: `Widest 24h swing`,
+        value: `${widestSwing24.code} ₦${formatNgn(widestSwing24.range24)}`,
+        tone: 'neutral',
+      },
+    ];
+
+    return { isReady: true, items };
+  }, [rates, rateHistory]);
+
   const currencyNameByCode = useMemo(() => {
     return rates.reduce<Record<string, string>>((acc, rate) => {
       acc[rate.code] = rate.name;
@@ -317,7 +430,8 @@ export default function App() {
             </div>
           </div>
 
-          <div className="grid sm:grid-cols-2 gap-4 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <DailySummaryCard items={dailySummary.items} isReady={dailySummary.isReady} />
             <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4">
               <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-3 flex items-center gap-2">
                 <TrendingUp className="w-4 h-4 text-emerald-500" />
