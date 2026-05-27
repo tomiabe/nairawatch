@@ -39,7 +39,7 @@ export const RateCard: React.FC<RateCardProps> = ({ rate, onOpenTrend, isWatched
               e.stopPropagation();
               onToggleWatch?.(rate.code);
             }}
-            className={`p-2 rounded-lg border transition-colors ${
+            className={`p-1.5 rounded-lg border transition-colors ${
               isWatched
                 ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800/40 text-amber-700 dark:text-amber-300'
                 : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-300 hover:text-amber-600 dark:hover:text-amber-300'
@@ -47,7 +47,7 @@ export const RateCard: React.FC<RateCardProps> = ({ rate, onOpenTrend, isWatched
             aria-label={isWatched ? `Unwatch ${rate.code}` : `Watch ${rate.code}`}
             title={isWatched ? 'Remove from watchlist' : 'Add to watchlist'}
           >
-            <Star className={`w-4 h-4 ${isWatched ? 'fill-current' : ''}`} />
+            <Star className={`w-3.5 h-3.5 ${isWatched ? 'fill-current' : ''}`} />
           </button>
 
           <div className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-2 py-1 rounded text-xs font-bold font-mono">
