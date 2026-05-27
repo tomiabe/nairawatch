@@ -13,6 +13,7 @@ import { ExternalLink, Info, TrendingDown, TrendingUp, WifiOff } from 'lucide-re
 type RateSnapshot = { ts: number; sell: number };
 
 const HISTORY_KEY = 'nairawatch_rate_history_v1';
+const WATCHLIST_KEY = 'nairawatch_watchlist_v1';
 const HISTORY_MAX_DAYS = 8;
 const HISTORY_MIN_INTERVAL_MS = 2 * 60 * 1000;
 const HISTORY_MAX_POINTS = 2000;
@@ -109,6 +110,28 @@ const saveRateHistory = (history: Record<string, RateSnapshot[]>) => {
   }
 };
 
+const loadWatchlist = (): string[] => {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = window.localStorage.getItem(WATCHLIST_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter((item) => typeof item === 'string');
+  } catch {
+    return [];
+  }
+};
+
+const saveWatchlist = (codes: string[]) => {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(WATCHLIST_KEY, JSON.stringify(codes));
+  } catch {
+    // Ignore quota or serialization errors
+  }
+};
+
 const appendRateHistory = (
   prev: Record<string, RateSnapshot[]>,
   rates: CurrencyRate[],
@@ -155,6 +178,7 @@ export default function App() {
   const [trendSeriesByCode, setTrendSeriesByCode] = useState<Record<string, TrendPoint[]>>({});
   const [rateHistory, setRateHistory] = useState<Record<string, RateSnapshot[]>>({});
   const [regionFilter, setRegionFilter] = useState<RegionLabel>('All');
+  const [watchlist, setWatchlist] = useState<string[]>([]);
 
   useEffect(() => {
     const checkTimeForTheme = () => {
@@ -215,6 +239,14 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    setWatchlist(loadWatchlist());
+  }, []);
+
+  useEffect(() => {
+    saveWatchlist(watchlist);
+  }, [watchlist]);
+
+  useEffect(() => {
     if (rates.length === 0) return;
     setRateHistory((prev) => {
       const next = appendRateHistory(prev, rates);
@@ -234,10 +266,28 @@ export default function App() {
   const selectedRate = selectedCode ? rates.find((r) => r.code === selectedCode) || null : null;
   const selectedTrend = selectedRate ? trendSeriesByCode[selectedRate.code] || [] : [];
 
+  const toggleWatch = (code: string) => {
+    setWatchlist((prev) => {
+      const next = new Set(prev);
+      if (next.has(code)) next.delete(code);
+      else next.add(code);
+      return Array.from(next);
+    });
+  };
+
   const filteredRates = useMemo(() => {
     if (regionFilter === 'All') return rates;
     return rates.filter((rate) => (REGION_MAP[rate.code] || 'Asia') === regionFilter);
   }, [rates, regionFilter]);
+
+  const watchlistRates = useMemo(() => {
+    if (watchlist.length === 0) return [] as CurrencyRate[];
+    const byCode = rates.reduce<Record<string, CurrencyRate>>((acc, rate) => {
+      acc[rate.code] = rate;
+      return acc;
+    }, {});
+    return watchlist.map((code) => byCode[code]).filter(Boolean);
+  }, [rates, watchlist]);
 
   const trendLeaders = useMemo(() => {
     const periodMs = trendPeriod === '7d' ? 7 * 24 * 60 * 60 * 1000 : 24 * 60 * 60 * 1000;
@@ -492,9 +542,53 @@ export default function App() {
             ))}
           </div>
 
+          <div className="mb-6">
+            <div className="flex items-end justify-between gap-4 mb-3">
+              <div>
+                <h2 className="text-sm font-semibold text-slate-800 dark:text-slate-100">Your Watchlist</h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                  Pin currencies with the ⭐ on any card.
+                </p>
+              </div>
+              {watchlist.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setWatchlist([])}
+                  className="text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+
+            {watchlistRates.length === 0 ? (
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3 text-sm text-slate-600 dark:text-slate-300">
+                No currencies pinned yet.
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {watchlistRates.map((rate) => (
+                  <RateCard
+                    key={`watch_${rate.code}`}
+                    rate={rate}
+                    isWatched
+                    onToggleWatch={toggleWatch}
+                    onOpenTrend={() => setSelectedCode(rate.code)}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {filteredRates.map((rate) => (
-              <RateCard key={rate.code} rate={rate} onOpenTrend={() => setSelectedCode(rate.code)} />
+              <RateCard
+                key={rate.code}
+                rate={rate}
+                isWatched={watchlist.includes(rate.code)}
+                onToggleWatch={toggleWatch}
+                onOpenTrend={() => setSelectedCode(rate.code)}
+              />
             ))}
           </div>
         </section>
