@@ -315,8 +315,6 @@ export default function App() {
           pct24,
           delta7d,
           pct7d,
-          min24,
-          max24,
           range24,
         };
       })
@@ -327,8 +325,6 @@ export default function App() {
       pct24: number;
       delta7d: number;
       pct7d: number;
-      min24: number;
-      max24: number;
       range24: number;
     }>;
 
@@ -347,20 +343,20 @@ export default function App() {
     const items: DailySummaryItem[] = [
       {
         key: 'top_up_24h',
-        label: `${topUp24.code} sell moved up (24h)`,
-        value: `₦${formatNgn(Math.abs(topUp24.delta24))} per ${topUp24.code} (${formatPct(topUp24.pct24)})`,
+        label: `${topUp24.code} moved up (24h)`,
+        value: `₦${formatNgn(Math.abs(topUp24.delta24))} (${formatPct(topUp24.pct24)})`,
         tone: 'up',
       },
       {
         key: 'top_down_24h',
-        label: `${topDown24.code} sell moved down (24h)`,
-        value: `₦${formatNgn(Math.abs(topDown24.delta24))} per ${topDown24.code} (${formatPct(topDown24.pct24)})`,
+        label: `${topDown24.code} moved down (24h)`,
+        value: `₦${formatNgn(Math.abs(topDown24.delta24))} (${formatPct(topDown24.pct24)})`,
         tone: 'down',
       },
       {
         key: 'week_mover',
         label: `Biggest move (7d)`,
-        value: `${biggestWeekMove.code} ₦${formatNgn(Math.abs(biggestWeekMove.delta7d))} per ${biggestWeekMove.code} (${formatPct(biggestWeekMove.pct7d)})`,
+        value: `${biggestWeekMove.code} ₦${formatNgn(Math.abs(biggestWeekMove.delta7d))} (${formatPct(biggestWeekMove.pct7d)})`,
         tone: biggestWeekMove.pct7d >= 0 ? 'up' : 'down',
       },
       {
@@ -372,7 +368,7 @@ export default function App() {
       {
         key: 'swing',
         label: `Widest 24h swing`,
-        value: `${widestSwing24.code} ₦${formatNgn(widestSwing24.min24)}–₦${formatNgn(widestSwing24.max24)} (₦${formatNgn(widestSwing24.range24)})`,
+        value: `${widestSwing24.code} ₦${formatNgn(widestSwing24.range24)}`,
         tone: 'neutral',
       },
     ];
