@@ -10,13 +10,17 @@ import { CurrencyRate, TrendPeriod, TrendPoint } from './types';
 import { INITIAL_RATES } from './constants';
 import { ExternalLink, Info, TrendingDown, TrendingUp, WifiOff } from 'lucide-react';
 
-type RateSnapshot = { ts: number; sell: number };
+type RateSnapshot = { ts: number; sell: number; buy?: number };
 
 const HISTORY_KEY = 'nairawatch_rate_history_v1';
 const WATCHLIST_KEY = 'nairawatch_watchlist_v1';
+const CACHED_RATES_KEY = 'nairawatch_cached_rates_v1';
+const REFRESH_LOG_KEY = 'nairawatch_refresh_log_v1';
 const HISTORY_MAX_DAYS = 8;
 const HISTORY_MIN_INTERVAL_MS = 2 * 60 * 1000;
 const HISTORY_MAX_POINTS = 2000;
+const MANUAL_REFRESH_LIMIT = 3;
+const REFRESH_WINDOW_MS = 60 * 60 * 1000;
 
 const REGION_LABELS = ['All', 'Americas', 'Europe', 'Africa', 'Asia', 'Middle East', 'Oceania'] as const;
 type RegionLabel = typeof REGION_LABELS[number];
@@ -89,6 +93,41 @@ const REGION_MAP: Record<string, Exclude<RegionLabel, 'All'>> = {
   NZD: 'Oceania',
 };
 
+const loadCachedRates = (): CurrencyRate[] => {
+  try {
+    const raw = window.localStorage.getItem(CACHED_RATES_KEY);
+    if (!raw) return INITIAL_RATES;
+    const parsed = JSON.parse(raw) as CurrencyRate[];
+    return Array.isArray(parsed) && parsed.length > 0 ? parsed : INITIAL_RATES;
+  } catch {
+    return INITIAL_RATES;
+  }
+};
+
+const saveCachedRates = (rates: CurrencyRate[]) => {
+  try {
+    window.localStorage.setItem(CACHED_RATES_KEY, JSON.stringify(rates));
+  } catch {}
+};
+
+const getRefreshLog = (): number[] => {
+  try {
+    const raw = window.localStorage.getItem(REFRESH_LOG_KEY);
+    return raw ? (JSON.parse(raw) as number[]) : [];
+  } catch {
+    return [];
+  }
+};
+
+const saveRefreshLog = (log: number[]) => {
+  try {
+    window.localStorage.setItem(REFRESH_LOG_KEY, JSON.stringify(log));
+  } catch {}
+};
+
+const getRecentRefreshes = (): number[] =>
+  getRefreshLog().filter((ts) => Date.now() - ts < REFRESH_WINDOW_MS);
+
 const loadRateHistory = (): Record<string, RateSnapshot[]> => {
   if (typeof window === 'undefined') return {};
   try {
@@ -144,11 +183,12 @@ const appendRateHistory = (
     if (!Number.isFinite(rate.sell) || rate.sell <= 0) return;
     const list = [...(next[rate.code] || [])];
     const last = list[list.length - 1];
+    const snap: RateSnapshot = { ts: now, sell: rate.sell, buy: rate.buy };
 
     if (last && now - last.ts < HISTORY_MIN_INTERVAL_MS && Math.abs(last.sell - rate.sell) < 0.0001) {
-      list[list.length - 1] = { ts: now, sell: rate.sell };
+      list[list.length - 1] = snap;
     } else {
-      list.push({ ts: now, sell: rate.sell });
+      list.push(snap);
     }
 
     const pruned = list.filter((point) => point.ts >= cutoff);
@@ -163,8 +203,11 @@ const appendRateHistory = (
 };
 
 export default function App() {
-  const [rates, setRates] = useState<CurrencyRate[]>(INITIAL_RATES);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [rates, setRates] = useState<CurrencyRate[]>(() => loadCachedRates());
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [refreshesRemaining, setRefreshesRemaining] = useState<number>(
+    () => MANUAL_REFRESH_LIMIT - getRecentRefreshes().length,
+  );
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [sources, setSources] = useState<string[]>([]);
 
@@ -204,7 +247,20 @@ export default function App() {
     setIsDarkMode(prev => !prev);
   };
 
-  const loadRates = async () => {
+  const loadRates = async (manual = false) => {
+    if (manual) {
+      const recent = getRecentRefreshes();
+      if (recent.length >= MANUAL_REFRESH_LIMIT) {
+        const oldestExpiry = recent[0] + REFRESH_WINDOW_MS;
+        const minsLeft = Math.ceil((oldestExpiry - Date.now()) / 60000);
+        setErrorMsg(`Refresh limit reached. Try again in ${minsLeft} minute${minsLeft !== 1 ? 's' : ''}.`);
+        return;
+      }
+      const updated = [...recent, Date.now()];
+      saveRefreshLog(updated);
+      setRefreshesRemaining(MANUAL_REFRESH_LIMIT - updated.length);
+    }
+
     setIsLoading(true);
     try {
       const data = await fetchLatestRates();
@@ -218,6 +274,7 @@ export default function App() {
         setIsOffline(false);
         setErrorMsg('');
         setLastUpdated(new Date());
+        saveCachedRates(data.rates);
       }
     } catch (err) {
       console.error('Unexpected error in App:', err);
@@ -256,12 +313,29 @@ export default function App() {
   }, [rates]);
 
   useEffect(() => {
+    const periodMs = trendPeriod === '7d' ? 7 * 24 * 60 * 60 * 1000 : 24 * 60 * 60 * 1000;
+    const cutoff = Date.now() - periodMs;
     const next: Record<string, TrendPoint[]> = {};
+
     rates.forEach((rate) => {
-      next[rate.code] = buildMockTrend(rate, trendPeriod);
+      const series = rateHistory[rate.code];
+      const windowPoints = series ? series.filter((p) => p.ts >= cutoff) : [];
+      const spreadRatio =
+        rate.sell > 0 ? Math.max(0.001, (rate.sell - rate.buy) / rate.sell) : 0.01;
+
+      if (windowPoints.length >= 2) {
+        next[rate.code] = windowPoints.map((p) => ({
+          timestamp: new Date(p.ts).toISOString(),
+          sell: p.sell,
+          buy: p.buy ?? Math.max(0.01, p.sell * (1 - spreadRatio)),
+        }));
+      } else {
+        next[rate.code] = buildMockTrend(rate, trendPeriod);
+      }
     });
+
     setTrendSeriesByCode(next);
-  }, [rates, trendPeriod]);
+  }, [rates, trendPeriod, rateHistory]);
 
   const selectedRate = selectedCode ? rates.find((r) => r.code === selectedCode) || null : null;
   const selectedTrend = selectedRate ? trendSeriesByCode[selectedRate.code] || [] : [];
@@ -419,10 +493,11 @@ export default function App() {
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pb-8 transition-colors duration-300">
       <Header
         lastUpdated={lastUpdated}
-        onRefresh={loadRates}
+        onRefresh={() => loadRates(true)}
         isLoading={isLoading}
         isDarkMode={isDarkMode}
         toggleTheme={toggleTheme}
+        refreshesRemaining={refreshesRemaining}
       />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
@@ -598,17 +673,37 @@ export default function App() {
               <div>
                 <h4 className="text-white font-semibold text-sm mb-3">Data Sources</h4>
                 <ul className="space-y-2 text-sm">
-                  {sources.length > 0 ? sources.slice(0, 4).map((source, idx) => (
-                    <li key={idx} className="flex items-center">
-                      <ExternalLink className="h-3 w-3 mr-2 text-emerald-500" />
-                      <span className="truncate">{source}</span>
-                    </li>
-                  )) : (
-                    <li className="flex items-center text-slate-500">
-                      <Info className="h-3 w-3 mr-2" />
-                      <span>Searching live sources...</span>
-                    </li>
-                  )}
+                  {(() => {
+                    const marketSources = sources.filter(
+                      (s) =>
+                        !s.startsWith('Groq') &&
+                        !s.startsWith('OpenRouter') &&
+                        s !== 'Official Exchange API' &&
+                        !/llama|gemma|qwen|mistral/i.test(s),
+                    );
+                    if (marketSources.length > 0) {
+                      return marketSources.slice(0, 4).map((source, idx) => (
+                        <li key={idx} className="flex items-center">
+                          <ExternalLink className="h-3 w-3 mr-2 text-emerald-500" />
+                          <span className="truncate">{source}</span>
+                        </li>
+                      ));
+                    }
+                    if (sources.length > 0) {
+                      return (
+                        <li className="flex items-center text-slate-400">
+                          <Info className="h-3 w-3 mr-2" />
+                          <span>Parallel market analysis</span>
+                        </li>
+                      );
+                    }
+                    return (
+                      <li className="flex items-center text-slate-500">
+                        <Info className="h-3 w-3 mr-2" />
+                        <span>Searching live sources…</span>
+                      </li>
+                    );
+                  })()}
                 </ul>
               </div>
             </div>
