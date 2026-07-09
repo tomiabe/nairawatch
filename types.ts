@@ -22,6 +22,14 @@ export interface TrendPoint {
   sell: number;
 }
 
+export interface PriceAlert {
+  id: string;
+  code: string;
+  direction: 'above' | 'below';
+  threshold: number;
+  fired: boolean;
+}
+
 export enum CurrencyCode {
   NGN = 'NGN',
   USD = 'USD',

@@ -4,9 +4,11 @@ import { Converter } from './components/Converter';
 import { RateCard } from './components/RateCard';
 import { DailySummaryCard, DailySummaryItem } from './components/DailySummaryCard';
 import { TrendModal } from './components/TrendModal';
+import { AlertsModal } from './components/AlertsModal';
+import { ShareModal } from './components/ShareModal';
 import { fetchLatestRates } from './services/geminiService';
 import { buildMockTrend } from './services/trendService';
-import { CurrencyRate, TrendPeriod, TrendPoint } from './types';
+import { CurrencyRate, PriceAlert, TrendPeriod, TrendPoint } from './types';
 import { INITIAL_RATES } from './constants';
 import { ExternalLink, Info, TrendingDown, TrendingUp, WifiOff } from 'lucide-react';
 
@@ -16,6 +18,7 @@ const HISTORY_KEY = 'nairawatch_rate_history_v1';
 const WATCHLIST_KEY = 'nairawatch_watchlist_v1';
 const CACHED_RATES_KEY = 'nairawatch_cached_rates_v1';
 const REFRESH_LOG_KEY = 'nairawatch_refresh_log_v1';
+const ALERTS_KEY = 'nairawatch_alerts_v1';
 const HISTORY_MAX_DAYS = 8;
 const HISTORY_MIN_INTERVAL_MS = 2 * 60 * 1000;
 const HISTORY_MAX_POINTS = 2000;
@@ -171,6 +174,21 @@ const saveWatchlist = (codes: string[]) => {
   }
 };
 
+const loadAlerts = (): PriceAlert[] => {
+  try {
+    const raw = window.localStorage.getItem(ALERTS_KEY);
+    return raw ? (JSON.parse(raw) as PriceAlert[]) : [];
+  } catch {
+    return [];
+  }
+};
+
+const saveAlerts = (alerts: PriceAlert[]) => {
+  try {
+    window.localStorage.setItem(ALERTS_KEY, JSON.stringify(alerts));
+  } catch {}
+};
+
 const appendRateHistory = (
   prev: Record<string, RateSnapshot[]>,
   rates: CurrencyRate[],
@@ -222,6 +240,9 @@ export default function App() {
   const [rateHistory, setRateHistory] = useState<Record<string, RateSnapshot[]>>({});
   const [regionFilter, setRegionFilter] = useState<RegionLabel>('All');
   const [watchlist, setWatchlist] = useState<string[]>([]);
+  const [alerts, setAlerts] = useState<PriceAlert[]>(() => loadAlerts());
+  const [alertCode, setAlertCode] = useState<string | null>(null);
+  const [showShare, setShowShare] = useState(false);
 
   useEffect(() => {
     const checkTimeForTheme = () => {
@@ -302,6 +323,57 @@ export default function App() {
   useEffect(() => {
     saveWatchlist(watchlist);
   }, [watchlist]);
+
+  useEffect(() => {
+    if (!rates.length || !alerts.length) return;
+    let changed = false;
+    const updated = alerts.map((alert) => {
+      const rate = rates.find((r) => r.code === alert.code);
+      if (!rate) return alert;
+      const triggered =
+        (alert.direction === 'above' && rate.sell >= alert.threshold) ||
+        (alert.direction === 'below' && rate.sell <= alert.threshold);
+      if (triggered && !alert.fired) {
+        if ('Notification' in window && Notification.permission === 'granted') {
+          new Notification(`NairaWatch: ${rate.code} Alert`, {
+            body: `${rate.code} sell rate (₦${rate.sell.toLocaleString()}) is ${alert.direction} ₦${alert.threshold.toLocaleString()}`,
+          });
+        }
+        changed = true;
+        return { ...alert, fired: true };
+      }
+      if (!triggered && alert.fired) {
+        changed = true;
+        return { ...alert, fired: false };
+      }
+      return alert;
+    });
+    if (changed) {
+      setAlerts(updated);
+      saveAlerts(updated);
+    }
+  }, [rates]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const addAlert = (alertData: Omit<PriceAlert, 'id' | 'fired'>) => {
+    const newAlert: PriceAlert = {
+      ...alertData,
+      id: `${Date.now()}_${Math.random().toString(36).slice(2)}`,
+      fired: false,
+    };
+    setAlerts((prev) => {
+      const next = [...prev, newAlert];
+      saveAlerts(next);
+      return next;
+    });
+  };
+
+  const removeAlert = (id: string) => {
+    setAlerts((prev) => {
+      const next = prev.filter((a) => a.id !== id);
+      saveAlerts(next);
+      return next;
+    });
+  };
 
   useEffect(() => {
     if (rates.length === 0) return;
@@ -494,6 +566,7 @@ export default function App() {
       <Header
         lastUpdated={lastUpdated}
         onRefresh={() => loadRates(true)}
+        onShare={() => setShowShare(true)}
         isLoading={isLoading}
         isDarkMode={isDarkMode}
         toggleTheme={toggleTheme}
@@ -614,6 +687,8 @@ export default function App() {
                     isWatched
                     onToggleWatch={toggleWatch}
                     onOpenTrend={() => setSelectedCode(rate.code)}
+                    hasAlert={alerts.some((a) => a.code === rate.code)}
+                    onOpenAlert={setAlertCode}
                   />
                 ))}
               </div>
@@ -647,6 +722,8 @@ export default function App() {
                 isWatched={watchlist.includes(rate.code)}
                 onToggleWatch={toggleWatch}
                 onOpenTrend={() => setSelectedCode(rate.code)}
+                hasAlert={alerts.some((a) => a.code === rate.code)}
+                onOpenAlert={setAlertCode}
               />
             ))}
           </div>
@@ -722,6 +799,27 @@ export default function App() {
           period={trendPeriod}
           onPeriodChange={setTrendPeriod}
           onClose={() => setSelectedCode(null)}
+        />
+      )}
+
+      {alertCode && (() => {
+        const alertRate = rates.find((r) => r.code === alertCode);
+        return alertRate ? (
+          <AlertsModal
+            rate={alertRate}
+            alerts={alerts}
+            onAdd={addAlert}
+            onRemove={removeAlert}
+            onClose={() => setAlertCode(null)}
+          />
+        ) : null;
+      })()}
+
+      {showShare && (
+        <ShareModal
+          rates={rates}
+          watchlist={watchlist}
+          onClose={() => setShowShare(false)}
         />
       )}
     </div>
