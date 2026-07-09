@@ -17,8 +17,12 @@ NairaWatch tracks the parallel (street) market exchange rates between the Nigeri
 
 - Live buy/sell rates for 60+ currencies against the Naira
 - Official CBN rate comparison alongside street market rates
+- Watchlist — pin currencies for quick access
+- Price alerts — get a browser notification when a rate crosses your threshold
+- Shareable rate card — generate and share a PNG of current rates
+- Trend charts — 24h and 7-day historical view per currency
 - Region filters (Americas, Europe, Africa, Middle East, Asia-Pacific)
-- Dark mode
+- Dark mode, auto-switching by time of day
 - Mobile-friendly
 
 ## Tech Stack
@@ -46,10 +50,6 @@ npm run dev
 ```
 
 The frontend proxies `/api` requests to the local worker automatically.
-
-## Contributing
-
-Issues and pull requests are welcome. Please open an issue first to discuss significant changes.
 
 ---
 
