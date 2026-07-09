@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowUpRight, ArrowDownLeft, Building2, Star, Store } from 'lucide-react';
+import { ArrowUpRight, ArrowDownLeft, Bell, Building2, Star, Store } from 'lucide-react';
 import { CurrencyRate } from '../types';
 import { EMOJI_STYLE } from './emojiStyles';
 
@@ -8,9 +8,18 @@ interface RateCardProps {
   onOpenTrend?: (rate: CurrencyRate) => void;
   isWatched?: boolean;
   onToggleWatch?: (code: string) => void;
+  hasAlert?: boolean;
+  onOpenAlert?: (code: string) => void;
 }
 
-export const RateCard: React.FC<RateCardProps> = ({ rate, onOpenTrend, isWatched = false, onToggleWatch }) => {
+export const RateCard: React.FC<RateCardProps> = ({
+  rate,
+  onOpenTrend,
+  isWatched = false,
+  onToggleWatch,
+  hasAlert = false,
+  onOpenAlert,
+}) => {
   return (
     <button
       type="button"
@@ -48,6 +57,24 @@ export const RateCard: React.FC<RateCardProps> = ({ rate, onOpenTrend, isWatched
             title={isWatched ? 'Remove from watchlist' : 'Add to watchlist'}
           >
             <Star className={`w-3.5 h-3.5 ${isWatched ? 'fill-current' : ''}`} />
+          </button>
+
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onOpenAlert?.(rate.code);
+            }}
+            className={`p-1.5 rounded-lg border transition-colors ${
+              hasAlert
+                ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800/40 text-amber-600 dark:text-amber-300'
+                : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-300 hover:text-amber-600 dark:hover:text-amber-300'
+            }`}
+            aria-label={`Set alert for ${rate.code}`}
+            title="Set price alert"
+          >
+            <Bell className={`w-3.5 h-3.5 ${hasAlert ? 'fill-current' : ''}`} />
           </button>
 
           <div className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-2 py-1 rounded text-xs font-bold font-mono">
