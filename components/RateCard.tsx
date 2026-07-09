@@ -28,57 +28,61 @@ export const RateCard: React.FC<RateCardProps> = ({
       aria-label={`Open ${rate.code} trend`}
     >
       <div className="flex justify-between items-start mb-4">
-        <div className="flex items-center space-x-3">
+        {/* Left: flag + code + name get the full remaining width */}
+        <div className="flex items-center gap-3 min-w-0 pr-3">
           <span
             className="grid place-items-center w-12 h-12 md:w-11 md:h-11 rounded-full bg-slate-50 dark:bg-slate-800 shadow-sm flex-shrink-0"
             style={EMOJI_STYLE}
           >
             <span className="block text-4xl md:text-3xl leading-none translate-y-[1px]">{rate.flag}</span>
           </span>
-          <div>
+          <div className="min-w-0">
             <h2 className="font-bold text-slate-900 dark:text-white text-lg">{rate.code}</h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">{rate.name}</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium truncate">{rate.name}</p>
           </div>
         </div>
-        <div className="flex items-start gap-2">
-          <button
-            type="button"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              onToggleWatch?.(rate.code);
-            }}
-            className={`p-1.5 rounded-lg border transition-colors ${
-              isWatched
-                ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800/40 text-amber-700 dark:text-amber-300'
-                : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-300 hover:text-amber-600 dark:hover:text-amber-300'
-            }`}
-            aria-label={isWatched ? `Unwatch ${rate.code}` : `Watch ${rate.code}`}
-            title={isWatched ? 'Remove from watchlist' : 'Add to watchlist'}
-          >
-            <Star className={`w-3.5 h-3.5 ${isWatched ? 'fill-current' : ''}`} />
-          </button>
 
-          <button
-            type="button"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              onOpenAlert?.(rate.code);
-            }}
-            className={`p-1.5 rounded-lg border transition-colors ${
-              hasAlert
-                ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800/40 text-amber-600 dark:text-amber-300'
-                : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-300 hover:text-amber-600 dark:hover:text-amber-300'
-            }`}
-            aria-label={`Set alert for ${rate.code}`}
-            title="Set price alert"
-          >
-            <Bell className={`w-3.5 h-3.5 ${hasAlert ? 'fill-current' : ''}`} />
-          </button>
-
+        {/* Right: badge on top, action icons below — stacked vertically */}
+        <div className="flex flex-col items-end gap-2 flex-shrink-0">
           <div className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-2 py-1 rounded text-xs font-bold font-mono">
             {rate.code}/NGN
+          </div>
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onToggleWatch?.(rate.code);
+              }}
+              className={`p-1.5 rounded-lg border transition-colors ${
+                isWatched
+                  ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800/40 text-amber-700 dark:text-amber-300'
+                  : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-300 hover:text-amber-600 dark:hover:text-amber-300'
+              }`}
+              aria-label={isWatched ? `Unwatch ${rate.code}` : `Watch ${rate.code}`}
+              title={isWatched ? 'Remove from watchlist' : 'Add to watchlist'}
+            >
+              <Star className={`w-3.5 h-3.5 ${isWatched ? 'fill-current' : ''}`} />
+            </button>
+
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onOpenAlert?.(rate.code);
+              }}
+              className={`p-1.5 rounded-lg border transition-colors ${
+                hasAlert
+                  ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800/40 text-emerald-600 dark:text-emerald-400'
+                  : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400'
+              }`}
+              aria-label={`Set alert for ${rate.code}`}
+              title="Set price alert"
+            >
+              <Bell className={`w-3.5 h-3.5 ${hasAlert ? 'fill-current' : ''}`} />
+            </button>
           </div>
         </div>
       </div>

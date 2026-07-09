@@ -156,9 +156,13 @@ export const ShareModal: React.FC<ShareModalProps> = ({ rates, watchlist, onClos
   }, [rates, selected]);
 
   useEffect(() => {
+    document.body.style.overflow = 'hidden';
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    return () => {
+      document.body.style.overflow = '';
+      window.removeEventListener('keydown', onKey);
+    };
   }, [onClose]);
 
   const toggleCode = (code: string) => {

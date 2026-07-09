@@ -149,15 +149,26 @@ async function fetchStreetRatesWithAI(
 	const controller = new AbortController();
 	const timeout = setTimeout(() => controller.abort(), 15000);
 
-	const prompt = `Return ONLY valid JSON for current NGN parallel market rates for these currencies:
-USD, GBP, EUR, CAD, AUD, CNY, AED, SAR, CHF, JPY, ZAR, GHS, INR, XOF, KES, SGD, TRY, BRL, KRW, MYR, SEK, NOK, DKK, PLN, MXN, NZD, HKD, TWD, THB, IDR, PHP, VND, PKR, BDT, LKR, NPR, RUB, UAH, CZK, HUF, RON, BGN, ISK, ARS, CLP, COP, PEN, XAF, UGX, TZS, EGP, MAD, TND, DZD, ETB, ILS, QAR, KWD, BHD, OMR.
+	const today = new Date().toLocaleDateString('en-US', {
+		weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+	});
+
+	const prompt = `Today is ${today}. Estimate current Nigerian naira (NGN) parallel/black market exchange rates.
+
+Anchor: The live official USD/NGN rate today is ${officialUsdToNgn} (from exchangerate-api.com).
+The Nigerian parallel market currently trades roughly 5–15% above the official rate.
+Derive all other currency pairs mathematically:
+  NGN_parallel = (USD_parallel_rate) ÷ (foreign_currency_per_USD)
+For example, if USD parallel sell = X, then GBP parallel sell ≈ X × 1.27 (current GBP/USD cross).
+
+Return ONLY valid JSON — no explanation, no markdown:
+{"rates": [{"code":"USD","buy":XXXX,"sell":XXXX},...], "sources": ["NgnRates.com","AbokiFX"]}
 
 Rules:
-- Output object shape must be: {"rates": [{"code":"USD","buy":1600,"sell":1620}], "sources": ["NgnRates.com", "AbokiFX"]}
-- Use numbers only for buy/sell.
-- Include only the listed currency codes.
-- Prefer market references like NgnRates.com and AbokiFX when possible.
-- Official USD/NGN reference is about ${officialUsdToNgn}.`;
+- Numbers only for buy/sell (no strings, no ₦ symbol).
+- buy < sell for every pair.
+- Include ONLY these codes:
+USD, GBP, EUR, CAD, AUD, CNY, AED, SAR, CHF, JPY, ZAR, GHS, INR, XOF, KES, SGD, TRY, BRL, KRW, MYR, SEK, NOK, DKK, PLN, MXN, NZD, HKD, TWD, THB, IDR, PHP, VND, PKR, BDT, LKR, NPR, RUB, UAH, CZK, HUF, RON, BGN, ISK, ARS, CLP, COP, PEN, XAF, UGX, TZS, EGP, MAD, TND, DZD, ETB, ILS, QAR, KWD, BHD, OMR.`;
 
 	try {
 		const headers: Record<string, string> = {
