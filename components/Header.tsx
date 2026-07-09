@@ -7,9 +7,10 @@ interface HeaderProps {
   isLoading: boolean;
   isDarkMode: boolean;
   toggleTheme: () => void;
+  refreshesRemaining: number;
 }
 
-export const Header: React.FC<HeaderProps> = ({ lastUpdated, onRefresh, isLoading, isDarkMode, toggleTheme }) => {
+export const Header: React.FC<HeaderProps> = ({ lastUpdated, onRefresh, isLoading, isDarkMode, toggleTheme, refreshesRemaining }) => {
   return (
     <header className="sticky top-0 z-50 bg-slate-900/95 dark:bg-slate-900/95 backdrop-blur-md text-white shadow-lg border-b border-slate-800 transition-colors duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -42,15 +43,24 @@ export const Header: React.FC<HeaderProps> = ({ lastUpdated, onRefresh, isLoadin
             </button>
 
             {/* Refresh Button */}
-            <button
-              onClick={onRefresh}
-              disabled={isLoading}
-              className={`p-2 rounded-full hover:bg-slate-800 transition-all duration-200 border border-slate-700 ${isLoading ? 'opacity-50 cursor-not-allowed' : 'hover:border-emerald-500/50 hover:text-emerald-400'
+            <div className="flex flex-col items-center gap-0.5">
+              <button
+                onClick={onRefresh}
+                disabled={isLoading || refreshesRemaining <= 0}
+                className={`p-2 rounded-full transition-all duration-200 border border-slate-700 ${
+                  isLoading || refreshesRemaining <= 0
+                    ? 'opacity-40 cursor-not-allowed'
+                    : 'hover:bg-slate-800 hover:border-emerald-500/50 hover:text-emerald-400'
                 }`}
-              aria-label="Refresh rates"
-            >
-              <RefreshCw className={`h-5 w-5 ${isLoading ? 'animate-spin' : ''}`} />
-            </button>
+                aria-label="Refresh rates"
+                title={refreshesRemaining <= 0 ? 'Refresh limit reached for this hour' : `${refreshesRemaining} manual refresh${refreshesRemaining !== 1 ? 'es' : ''} remaining`}
+              >
+                <RefreshCw className={`h-5 w-5 ${isLoading ? 'animate-spin' : ''}`} />
+              </button>
+              <span className="text-[10px] tabular-nums text-slate-500 leading-none">
+                {refreshesRemaining}/hr
+              </span>
+            </div>
           </div>
         </div>
       </div>
