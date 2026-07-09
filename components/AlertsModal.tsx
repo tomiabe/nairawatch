@@ -19,9 +19,13 @@ export const AlertsModal: React.FC<AlertsModalProps> = ({ rate, alerts, onAdd, o
   const existing = alerts.filter((a) => a.code === rate.code);
 
   useEffect(() => {
+    document.body.style.overflow = 'hidden';
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    return () => {
+      document.body.style.overflow = '';
+      window.removeEventListener('keydown', onKey);
+    };
   }, [onClose]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -47,7 +51,7 @@ export const AlertsModal: React.FC<AlertsModalProps> = ({ rate, alerts, onAdd, o
       <div className="w-full max-w-sm bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-2xl">
         <div className="px-5 py-4 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
           <div className="flex items-center gap-2">
-            <Bell className="w-4 h-4 text-amber-500" />
+            <Bell className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
             <h3 className="text-base font-bold text-slate-900 dark:text-white">
               <span style={EMOJI_STYLE}>{rate.flag}</span> {rate.code} Alerts
             </h3>
@@ -73,7 +77,7 @@ export const AlertsModal: React.FC<AlertsModalProps> = ({ rate, alerts, onAdd, o
               <select
                 value={direction}
                 onChange={(e) => setDirection(e.target.value as 'above' | 'below')}
-                className="flex-shrink-0 text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                className="flex-shrink-0 text-sm border border-slate-200 dark:border-slate-700 rounded-lg pl-3 pr-9 py-2 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500"
               >
                 <option value="above">Above ₦</option>
                 <option value="below">Below ₦</option>
@@ -85,13 +89,13 @@ export const AlertsModal: React.FC<AlertsModalProps> = ({ rate, alerts, onAdd, o
                 placeholder={rate.sell.toLocaleString()}
                 min="0"
                 step="any"
-                className="flex-1 min-w-0 text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                className="flex-1 min-w-0 text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
               />
             </div>
             <button
               type="submit"
               disabled={!threshold || parseFloat(threshold) <= 0}
-              className="w-full py-2 rounded-lg bg-amber-500 text-white text-sm font-semibold hover:bg-amber-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              className="w-full py-2 rounded-lg bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             >
               Set Alert
             </button>
@@ -111,13 +115,13 @@ export const AlertsModal: React.FC<AlertsModalProps> = ({ rate, alerts, onAdd, o
               {existing.map((alert) => (
                 <div
                   key={alert.id}
-                  className="flex items-center justify-between bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800/30 rounded-lg px-3 py-2"
+                  className="flex items-center justify-between bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-200 dark:border-emerald-800/30 rounded-lg px-3 py-2"
                 >
                   <span className="text-sm text-slate-700 dark:text-slate-200">
                     Sell {alert.direction}{' '}
                     <span className="font-mono font-bold">₦{alert.threshold.toLocaleString()}</span>
                     {alert.fired && (
-                      <span className="ml-2 text-[10px] uppercase tracking-wide text-amber-600 dark:text-amber-400 font-semibold">
+                      <span className="ml-2 text-[10px] uppercase tracking-wide text-emerald-600 dark:text-emerald-400 font-semibold">
                         triggered
                       </span>
                     )}
