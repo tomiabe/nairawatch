@@ -42,11 +42,8 @@ export const RateCard: React.FC<RateCardProps> = ({
           </div>
         </div>
 
-        {/* Right: badge on top, action icons below — stacked vertically */}
+        {/* Right: action icons on top, badge below — stacked vertically */}
         <div className="flex flex-col items-end gap-2 flex-shrink-0">
-          <div className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-2 py-1 rounded text-xs font-bold font-mono">
-            {rate.code}/NGN
-          </div>
           <div className="flex items-center gap-1.5">
             <button
               type="button"
@@ -83,6 +80,9 @@ export const RateCard: React.FC<RateCardProps> = ({
             >
               <Bell className={`w-3.5 h-3.5 ${hasAlert ? 'fill-current' : ''}`} />
             </button>
+          </div>
+          <div className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-2 py-1 rounded text-xs font-bold font-mono">
+            {rate.code}/NGN
           </div>
         </div>
       </div>
