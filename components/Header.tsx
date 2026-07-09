@@ -44,7 +44,7 @@ export const Header: React.FC<HeaderProps> = ({
 
             <button
               onClick={toggleTheme}
-              className="p-2 rounded-full hover:bg-slate-800 transition-all duration-200 border border-slate-700 hover:border-slate-500 text-slate-400 hover:text-white"
+              className="p-2 rounded-full hover:bg-slate-800 transition-all duration-200 border border-slate-700 hover:border-emerald-500/50 text-slate-400 hover:text-emerald-400"
               aria-label={isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
             >
               {isDarkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
