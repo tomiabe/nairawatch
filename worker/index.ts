@@ -95,6 +95,7 @@ export interface Env {
 	OPENROUTER_MODELS?: string;
 	OPENROUTER_SITE_URL?: string;
 	OPENROUTER_APP_NAME?: string;
+	MANSA_API_KEY?: string;
 }
 
 type ParsedAiResponse = {
@@ -299,6 +300,34 @@ async function fetchNgnRatesLive(): Promise<Record<string, LiveQuote> | null> {
 	}
 }
 
+// Backup USD black-market quote from MansaAPI (P2P markets). Only used if NgnRates is unavailable.
+async function fetchMansaUsd(apiKey: string): Promise<LiveQuote | null> {
+	const controller = new AbortController();
+	const timeout = setTimeout(() => controller.abort(), 8000);
+	try {
+		const response = await fetch('https://mansaapi.com/api/v1/fx/rates?currency=NGN', {
+			signal: controller.signal,
+			headers: { Authorization: `Bearer ${apiKey}` },
+		});
+		if (!response.ok) throw new Error(`Mansa ${response.status}`);
+		const data: any = await response.json();
+		const c = data?.data?.consensus;
+		const buy = Number(c?.parallel_buy);
+		let sell = Number(c?.parallel_sell);
+		if (!Number.isFinite(buy) || buy <= 0) return null;
+		// Thin order books produce outlier sell prices, so cap the spread at 3%.
+		if (!Number.isFinite(sell) || sell <= 0 || c?.confidence === 'thin' || sell > buy * 1.03) {
+			sell = Math.round(buy * 1.01 * 100) / 100;
+		}
+		return { buy: Math.round(buy * 100) / 100, sell };
+	} catch (e) {
+		console.error('Failed to fetch Mansa:', e);
+		return null;
+	} finally {
+		clearTimeout(timeout);
+	}
+}
+
 export default {
 	async fetch(request: Request, env: Env): Promise<Response> {
 		if (request.method === 'OPTIONS') {
@@ -345,7 +374,15 @@ export default {
 				);
 			}
 
-			const live = await fetchNgnRatesLive();
+			let live = await fetchNgnRatesLive();
+			let usedMansa = false;
+			if ((!live || !live.USD) && env.MANSA_API_KEY) {
+				const mansaUsd = await fetchMansaUsd(env.MANSA_API_KEY);
+				if (mansaUsd) {
+					live = { ...(live || {}), USD: mansaUsd };
+					usedMansa = true;
+				}
+			}
 
 			// AI is only a fallback when live market data could not be fetched.
 			if (!live && providersToTry.length > 0) {
@@ -408,7 +445,7 @@ export default {
 				});
 				isFallback = false;
 				dataQuality = 'live';
-				sources.push('NgnRates.com (live black-market quotes)');
+				sources.push(usedMansa ? 'MansaAPI (USD P2P backup)' : 'NgnRates.com (live black-market quotes)');
 			} else mergedRates = mergedRates.map((rate) => {
 				const found = aiParsed.rates?.find((r) => r.code === rate.code);
 				if (found && (found.buy || found.sell)) {
