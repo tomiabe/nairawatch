@@ -239,6 +239,66 @@ function getOpenRouterCandidates(env: Env) {
 	return Array.from(new Set([primary, ...extra, ...DEFAULT_OPENROUTER_FALLBACK_MODELS]));
 }
 
+type LiveQuote = { buy?: number; sell?: number };
+
+// Real black-market quotes scraped from NgnRates.com. Quotes marked "Historical rate" are ignored.
+async function fetchNgnRatesLive(): Promise<Record<string, LiveQuote> | null> {
+	const controller = new AbortController();
+	const timeout = setTimeout(() => controller.abort(), 10000);
+	try {
+		const response = await fetch('https://ngnrates.com/', {
+			signal: controller.signal,
+			headers: { 'User-Agent': 'Mozilla/5.0 (compatible; NairaWatch/1.0)' },
+		});
+		if (!response.ok) throw new Error(`NgnRates ${response.status}`);
+		const html = await response.text();
+		const tokens = html
+			.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/gi, '')
+			.replace(/<[^>]+>/g, '\n')
+			.split('\n')
+			.map((t) => t.replace(/&nbsp;/g, ' ').trim())
+			.filter(Boolean);
+
+		const parseNum = (s: string) => {
+			const n = Number(s.replace(/,/g, ''));
+			return Number.isFinite(n) && n > 0 ? n : undefined;
+		};
+
+		const out: Record<string, LiveQuote> = {};
+		for (let i = 0; i < tokens.length; i++) {
+			if (!/^[A-Z]{3,4}$/.test(tokens[i])) continue;
+			const code = tokens[i] === 'RMB' ? 'CNY' : tokens[i];
+			if (out[code]) continue;
+			let sawBlackMarket = false;
+			for (let j = i + 1; j < Math.min(i + 14, tokens.length); j++) {
+				const t = tokens[j];
+				if (t.startsWith('See ') || (j > i + 1 && /^[A-Z]{3,4}$/.test(t) && !['CBN', 'NGN'].includes(t))) break;
+				if (t === 'CBN') break;
+				if (t === 'Black Market') { sawBlackMarket = true; continue; }
+				if (!sawBlackMarket) continue;
+				if (/historical rate/i.test(t)) break;
+				const m = t.match(/^([\d,.]+|—|-)\s*\/\s*([\d,.]+|—|-)$/);
+				if (m) {
+					// skip if the next few tokens flag it as a stale historical quote
+					const stale = tokens.slice(j + 1, j + 5).some((x) => /historical rate/i.test(x));
+					if (!stale) {
+						const buy = parseNum(m[1]);
+						const sell = parseNum(m[2]);
+						if (buy || sell) out[code] = { buy, sell };
+					}
+					break;
+				}
+			}
+		}
+		return Object.keys(out).length > 0 ? out : null;
+	} catch (e) {
+		console.error('Failed to fetch NgnRates:', e);
+		return null;
+	} finally {
+		clearTimeout(timeout);
+	}
+}
+
 export default {
 	async fetch(request: Request, env: Env): Promise<Response> {
 		if (request.method === 'OPTIONS') {
@@ -285,7 +345,10 @@ export default {
 				);
 			}
 
-			if (providersToTry.length > 0) {
+			const live = await fetchNgnRatesLive();
+
+			// AI is only a fallback when live market data could not be fetched.
+			if (!live && providersToTry.length > 0) {
 				const failures: string[] = [];
 				for (const { provider, url, key, model } of providersToTry) {
 					try {
@@ -315,7 +378,38 @@ export default {
 				}
 			}
 
-			mergedRates = mergedRates.map((rate) => {
+			let dataQuality: 'live' | 'estimate' = 'estimate';
+			if (live) {
+				const round2 = (n: number) => Math.round(n * 100) / 100;
+				const usdOfficial = mergedRates.find((r) => r.code === 'USD')?.official || officialUsdToNgn;
+				const usd = live.USD;
+				const clamp = (p: number) => Math.min(Math.max(p, 0), 0.25);
+				const buyPrem = usd?.buy ? clamp(usd.buy / usdOfficial - 1) : 0.04;
+				const sellPrem = usd?.sell ? clamp(usd.sell / usdOfficial - 1) : 0.06;
+				const spread = usd?.buy && usd?.sell ? usd.sell / usd.buy : 1.01;
+				mergedRates = mergedRates.map((rate) => {
+					const q = live[rate.code];
+					const now = new Date().toISOString();
+					if (q && (q.buy || q.sell)) {
+						const buy = q.buy ?? round2((q.sell as number) / spread);
+						const sell = q.sell ?? round2((q.buy as number) * spread);
+						return { ...rate, buy, sell, quality: 'live', lastUpdated: now };
+					}
+					if (rate.official) {
+						return {
+							...rate,
+							buy: round2(rate.official * (1 + buyPrem)),
+							sell: round2(rate.official * (1 + sellPrem)),
+							quality: 'derived',
+							lastUpdated: now,
+						};
+					}
+					return { ...rate, quality: 'estimate' };
+				});
+				isFallback = false;
+				dataQuality = 'live';
+				sources.push('NgnRates.com (live black-market quotes)');
+			} else mergedRates = mergedRates.map((rate) => {
 				const found = aiParsed.rates?.find((r) => r.code === rate.code);
 				if (found && (found.buy || found.sell)) {
 					return {
@@ -340,6 +434,8 @@ export default {
 				rates: mergedRates,
 				sources: Array.from(new Set(sources)),
 				isFallback,
+				dataQuality,
+				liveCurrencies: live ? Object.keys(live) : [],
 				error: quotaError
 					? `API rate limit reached. Using smart estimates.${modelErrorSummary ? ` ${modelErrorSummary}` : ''}`
 					: modelErrorSummary || null,
