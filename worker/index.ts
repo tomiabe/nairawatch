@@ -1,17 +1,23 @@
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
-const DEFAULT_GROQ_MODEL = 'llama-3.3-70b-versatile';
+const DEFAULT_GROQ_MODEL = 'openai/gpt-oss-120b';
 const DEFAULT_GROQ_FALLBACK_MODELS = [
-	'llama-3.3-70b-versatile',
-	'llama-3.1-8b-instant',
-	'gemma2-9b-it',
+	'openai/gpt-oss-120b',
+	'openai/gpt-oss-20b',
+];
+
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions';
+const DEFAULT_GEMINI_MODEL = 'gemini-3.1-flash-lite';
+const DEFAULT_GEMINI_FALLBACK_MODELS = [
+	'gemini-3.1-flash-lite',
+	'gemini-flash-latest',
 ];
 
 const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
-const DEFAULT_OPENROUTER_MODEL = 'google/gemma-3-4b-it:free';
+const DEFAULT_OPENROUTER_MODEL = 'google/gemma-4-31b-it:free';
 const DEFAULT_OPENROUTER_FALLBACK_MODELS = [
-	'google/gemma-3-4b-it:free',
-	'meta-llama/llama-3.2-3b-instruct:free',
-	'qwen/qwen3-4b:free',
+	'google/gemma-4-31b-it:free',
+	'google/gemma-4-26b-a4b-it:free',
+	'nvidia/nemotron-3-super-120b-a12b:free',
 ];
 
 const FALLBACK_RATES: any[] = [
@@ -78,8 +84,11 @@ const FALLBACK_RATES: any[] = [
 ];
 
 export interface Env {
-	GROQ_API_KEY: string;
+	GROQ_API_KEY?: string;
 	OPENROUTER_API_KEY?: string;
+	GEMINI_API_KEY?: string;
+	GEMINI_MODEL?: string;
+	GEMINI_MODELS?: string;
 	GROQ_MODEL?: string;
 	GROQ_MODELS?: string;
 	OPENROUTER_MODEL?: string;
@@ -217,6 +226,12 @@ function getGroqCandidates(env: Env) {
 	return Array.from(new Set([primary, ...extra, ...DEFAULT_GROQ_FALLBACK_MODELS]));
 }
 
+function getGeminiCandidates(env: Env) {
+	const primary = env.GEMINI_MODEL || DEFAULT_GEMINI_MODEL;
+	const extra = (env.GEMINI_MODELS || '').split(',').map((m) => m.trim()).filter(Boolean);
+	return Array.from(new Set([primary, ...extra, ...DEFAULT_GEMINI_FALLBACK_MODELS]));
+}
+
 function getOpenRouterCandidates(env: Env) {
 	const primary = env.OPENROUTER_MODEL || DEFAULT_OPENROUTER_MODEL;
 	const extra = (env.OPENROUTER_MODELS || '').split(',').map((m) => m.trim()).filter(Boolean);
@@ -232,6 +247,7 @@ export default {
 		try {
 			const groqKey = env.GROQ_API_KEY;
 			const orKey = env.OPENROUTER_API_KEY;
+			const geminiKey = env.GEMINI_API_KEY;
 
 			const officialData = await fetchOfficialRates();
 			const officialUsdToNgn = officialData?.usdToNgn || 1530;
@@ -255,6 +271,11 @@ export default {
 			if (groqKey) {
 				getGroqCandidates(env).forEach((m) =>
 					providersToTry.push({ provider: 'Groq', url: GROQ_API_URL, key: groqKey, model: m }),
+				);
+			}
+			if (geminiKey) {
+				getGeminiCandidates(env).forEach((m) =>
+					providersToTry.push({ provider: 'Gemini', url: GEMINI_API_URL, key: geminiKey, model: m }),
 				);
 			}
 			if (orKey) {
