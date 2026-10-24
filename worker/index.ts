@@ -83,6 +83,11 @@ const FALLBACK_RATES: any[] = [
 	{ code: 'OMR', name: 'Omani Rial', flag: '🇴🇲', buy: 4100, sell: 4300 },
 ];
 
+interface KVStore {
+	get(key: string, type: 'json'): Promise<any>;
+	put(key: string, value: string, options?: { expirationTtl?: number }): Promise<void>;
+}
+
 export interface Env {
 	GROQ_API_KEY?: string;
 	OPENROUTER_API_KEY?: string;
@@ -96,6 +101,7 @@ export interface Env {
 	OPENROUTER_SITE_URL?: string;
 	OPENROUTER_APP_NAME?: string;
 	MANSA_API_KEY?: string;
+	HISTORY?: KVStore;
 }
 
 type ParsedAiResponse = {
@@ -328,12 +334,98 @@ async function fetchMansaUsd(apiKey: string): Promise<LiveQuote | null> {
 	}
 }
 
-export default {
-	async fetch(request: Request, env: Env): Promise<Response> {
-		if (request.method === 'OPTIONS') {
-			return new Response(null, { headers: CORS_HEADERS });
-		}
+// Luno public order book (USDT/NGN). Independent of NgnRates and Mansa. bid = buy, ask = sell.
+async function fetchLunoUsd(): Promise<LiveQuote | null> {
+	const controller = new AbortController();
+	const timeout = setTimeout(() => controller.abort(), 8000);
+	try {
+		const response = await fetch('https://api.luno.com/api/1/ticker?pair=USDTNGN', { signal: controller.signal });
+		if (!response.ok) throw new Error(`Luno ${response.status}`);
+		const data: any = await response.json();
+		const buy = Number(data?.bid);
+		const sell = Number(data?.ask);
+		if (!Number.isFinite(buy) || !Number.isFinite(sell) || buy <= 0 || sell < buy) return null;
+		return { buy: Math.round(buy * 100) / 100, sell: Math.round(sell * 100) / 100 };
+	} catch (e) {
+		console.error('Failed to fetch Luno:', e);
+		return null;
+	} finally {
+		clearTimeout(timeout);
+	}
+}
 
+// Mansa's free tier allows 100 calls/day, so cache its quote in KV for 35 minutes.
+async function getMansaUsd(env: Env, needed: boolean): Promise<LiveQuote | null> {
+	if (!env.MANSA_API_KEY) return null;
+	const MAX_AGE = 35 * 60 * 1000;
+	if (env.HISTORY) {
+		try {
+			const cached = await env.HISTORY.get('mansa', 'json');
+			if (cached && Date.now() - cached.t < MAX_AGE) return cached.q;
+		} catch (e) {
+			console.error('Mansa cache read failed:', e);
+		}
+		const q = await fetchMansaUsd(env.MANSA_API_KEY);
+		if (q) {
+			try {
+				await env.HISTORY.put('mansa', JSON.stringify({ t: Date.now(), q }));
+			} catch (e) {
+				console.error('Mansa cache write failed:', e);
+			}
+		}
+		return q;
+	}
+	// No cache available: only spend a call when other sources are missing.
+	return needed ? fetchMansaUsd(env.MANSA_API_KEY) : null;
+}
+
+const median = (nums: number[]): number => {
+	const a = nums.filter((n) => Number.isFinite(n) && n > 0).sort((x, y) => x - y);
+	if (a.length === 0) return 0;
+	const m = Math.floor(a.length / 2);
+	return a.length % 2 ? a[m] : (a[m - 1] + a[m]) / 2;
+};
+
+// ---- Rate history (real snapshots stored in KV) ----
+type Snapshot = { t: number; r: Record<string, [number, number]> };
+const HISTORY_KEEP_MS = 8 * 24 * 60 * 60 * 1000;
+
+async function recordSnapshot(env: Env, rates: any[], minGapMs: number): Promise<void> {
+	if (!env.HISTORY) return;
+	try {
+		const now = Date.now();
+		const hist: Snapshot[] = (await env.HISTORY.get('history', 'json')) || [];
+		const last = hist[hist.length - 1];
+		if (last && now - last.t < minGapMs) return;
+		const r: Record<string, [number, number]> = {};
+		for (const rate of rates) {
+			if (Number.isFinite(rate.buy) && Number.isFinite(rate.sell)) r[rate.code] = [rate.buy, rate.sell];
+		}
+		hist.push({ t: now, r });
+		const trimmed = hist.filter((p) => now - p.t <= HISTORY_KEEP_MS);
+		await env.HISTORY.put('history', JSON.stringify(trimmed));
+	} catch (e) {
+		console.error('Failed to record snapshot:', e);
+	}
+}
+
+async function handleHistory(url: URL, env: Env): Promise<Response> {
+	const period = url.searchParams.get('period') === '7d' ? '7d' : '24h';
+	const windowMs = (period === '7d' ? 7 : 1) * 24 * 60 * 60 * 1000;
+	let points: Snapshot[] = [];
+	try {
+		const hist: Snapshot[] = env.HISTORY ? (await env.HISTORY.get('history', 'json')) || [] : [];
+		const cutoff = Date.now() - windowMs;
+		points = hist.filter((p) => p.t >= cutoff);
+	} catch (e) {
+		console.error('History read failed:', e);
+	}
+	return new Response(JSON.stringify({ period, points }), {
+		headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=300', ...CORS_HEADERS },
+	});
+}
+
+async function computeRates(env: Env): Promise<any> {
 		try {
 			const groqKey = env.GROQ_API_KEY;
 			const orKey = env.OPENROUTER_API_KEY;
@@ -375,13 +467,18 @@ export default {
 			}
 
 			let live = await fetchNgnRatesLive();
-			let usedMansa = false;
-			if ((!live || !live.USD) && env.MANSA_API_KEY) {
-				const mansaUsd = await fetchMansaUsd(env.MANSA_API_KEY);
-				if (mansaUsd) {
-					live = { ...(live || {}), USD: mansaUsd };
-					usedMansa = true;
-				}
+			const usdSources: Array<{ name: string; buy: number; sell: number }> = [];
+			if (live?.USD?.buy && live?.USD?.sell) {
+				usdSources.push({ name: 'NgnRates.com', buy: live.USD.buy, sell: live.USD.sell });
+			}
+			const luno = await fetchLunoUsd();
+			if (luno) usdSources.push({ name: 'Luno', buy: luno.buy as number, sell: luno.sell as number });
+			const mansa = await getMansaUsd(env, usdSources.length < 2);
+			if (mansa) usdSources.push({ name: 'MansaAPI', buy: mansa.buy as number, sell: mansa.sell as number });
+			if (usdSources.length > 0) {
+				const mBuy = median(usdSources.map((x) => x.buy));
+				const mSell = Math.max(median(usdSources.map((x) => x.sell)), mBuy);
+				live = { ...(live || {}), USD: { buy: Math.round(mBuy * 100) / 100, sell: Math.round(mSell * 100) / 100 } };
 			}
 
 			// AI is only a fallback when live market data could not be fetched.
@@ -445,7 +542,8 @@ export default {
 				});
 				isFallback = false;
 				dataQuality = 'live';
-				sources.push(usedMansa ? 'MansaAPI (USD P2P backup)' : 'NgnRates.com (live black-market quotes)');
+				sources.push(...usdSources.map((x) => `${x.name} (USD)`));
+				if (live.EUR || live.GBP) sources.push('NgnRates.com (live black-market quotes)');
 			} else mergedRates = mergedRates.map((rate) => {
 				const found = aiParsed.rates?.find((r) => r.code === rate.code);
 				if (found && (found.buy || found.sell)) {
@@ -467,24 +565,43 @@ export default {
 				return rate;
 			});
 
-			return jsonResponse({
+			return ({
 				rates: mergedRates,
 				sources: Array.from(new Set(sources)),
 				isFallback,
 				dataQuality,
 				liveCurrencies: live ? Object.keys(live) : [],
+				usdSources,
 				error: quotaError
 					? `API rate limit reached. Using smart estimates.${modelErrorSummary ? ` ${modelErrorSummary}` : ''}`
 					: modelErrorSummary || null,
 			});
 		} catch (err: any) {
 			console.error('Handler error:', err);
-			return jsonResponse({
+			return ({
 				rates: FALLBACK_RATES,
 				sources: ['Offline Estimates'],
 				isFallback: true,
 				error: err instanceof Error ? err.message : 'Internal Error',
 			});
 		}
+}
+
+export default {
+	async fetch(request: Request, env: Env, ctx?: { waitUntil(p: Promise<unknown>): void }): Promise<Response> {
+		if (request.method === 'OPTIONS') {
+			return new Response(null, { headers: CORS_HEADERS });
+		}
+		const url = new URL(request.url);
+		if (url.pathname.endsWith('/history')) return handleHistory(url, env);
+
+		const data = await computeRates(env);
+		if (!data.isFallback && ctx) ctx.waitUntil(recordSnapshot(env, data.rates, 55 * 60 * 1000));
+		return jsonResponse(data);
+	},
+
+	async scheduled(_event: unknown, env: Env, ctx: { waitUntil(p: Promise<unknown>): void }): Promise<void> {
+		const data = await computeRates(env);
+		if (!data.isFallback) ctx.waitUntil(recordSnapshot(env, data.rates, 10 * 60 * 1000));
 	},
 };
