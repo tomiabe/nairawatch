@@ -35,3 +35,23 @@ export const fetchLatestRates = async (): Promise<RatesResponse> => {
     };
   }
 };
+
+export type ServerSnapshot = { t: number; r: Record<string, [number, number]> };
+
+const HISTORY_ENDPOINT = (() => {
+  const base = import.meta.env.VITE_API_URL;
+  if (!base) return '/api/history';
+  return `${String(base).replace(/\/+$/, '')}/history`;
+})();
+
+// Real hourly snapshots recorded by the worker. Returns [] if unavailable.
+export const fetchRateHistory = async (period: '24h' | '7d' = '7d'): Promise<ServerSnapshot[]> => {
+  try {
+    const res = await fetch(`${HISTORY_ENDPOINT}?period=${period}`);
+    if (!res.ok) return [];
+    const data = await res.json();
+    return Array.isArray(data?.points) ? data.points : [];
+  } catch {
+    return [];
+  }
+};
