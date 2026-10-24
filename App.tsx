@@ -6,8 +6,7 @@ import { DailySummaryCard, DailySummaryItem } from './components/DailySummaryCar
 import { TrendModal } from './components/TrendModal';
 import { AlertsModal } from './components/AlertsModal';
 import { ShareModal } from './components/ShareModal';
-import { fetchLatestRates } from './services/geminiService';
-import { buildMockTrend } from './services/trendService';
+import { fetchLatestRates, fetchRateHistory } from './services/geminiService';
 import { CurrencyRate, PriceAlert, TrendPeriod, TrendPoint } from './types';
 import { INITIAL_RATES } from './constants';
 import { ExternalLink, Info, TrendingDown, TrendingUp, WifiOff } from 'lucide-react';
@@ -130,27 +129,6 @@ const saveRefreshLog = (log: number[]) => {
 
 const getRecentRefreshes = (): number[] =>
   getRefreshLog().filter((ts) => Date.now() - ts < REFRESH_WINDOW_MS);
-
-const loadRateHistory = (): Record<string, RateSnapshot[]> => {
-  if (typeof window === 'undefined') return {};
-  try {
-    const raw = window.localStorage.getItem(HISTORY_KEY);
-    if (!raw) return {};
-    const parsed = JSON.parse(raw) as Record<string, RateSnapshot[]>;
-    return parsed || {};
-  } catch {
-    return {};
-  }
-};
-
-const saveRateHistory = (history: Record<string, RateSnapshot[]>) => {
-  if (typeof window === 'undefined') return;
-  try {
-    window.localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
-  } catch {
-    // Ignore quota or serialization errors
-  }
-};
 
 const loadWatchlist = (): string[] => {
   if (typeof window === 'undefined') return [];
@@ -313,7 +291,29 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    setRateHistory(loadRateHistory());
+    // Real hourly snapshots recorded by the worker (replaces old browser-stored history).
+    let cancelled = false;
+    fetchRateHistory('7d').then((snaps) => {
+      if (cancelled || snaps.length === 0) return;
+      const fromServer: Record<string, RateSnapshot[]> = {};
+      snaps.forEach((snap) => {
+        Object.entries(snap.r).forEach(([code, pair]) => {
+          (fromServer[code] = fromServer[code] || []).push({ ts: snap.t, buy: pair[0], sell: pair[1] });
+        });
+      });
+      setRateHistory((prev) => {
+        const merged: Record<string, RateSnapshot[]> = { ...fromServer };
+        Object.entries(prev).forEach(([code, list]) => {
+          const lastServerTs = merged[code]?.length ? merged[code][merged[code].length - 1].ts : 0;
+          const extra = list.filter((p) => p.ts > lastServerTs);
+          if (extra.length) merged[code] = [...(merged[code] || []), ...extra];
+        });
+        return merged;
+      });
+    });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -377,12 +377,10 @@ export default function App() {
 
   useEffect(() => {
     if (rates.length === 0) return;
-    setRateHistory((prev) => {
-      const next = appendRateHistory(prev, rates);
-      saveRateHistory(next);
-      return next;
-    });
-  }, [rates]);
+    // Only record real (non-fallback) rates, and keep them in memory only.
+    if (isOffline) return;
+    setRateHistory((prev) => appendRateHistory(prev, rates));
+  }, [rates, isOffline]);
 
   useEffect(() => {
     const periodMs = trendPeriod === '7d' ? 7 * 24 * 60 * 60 * 1000 : 24 * 60 * 60 * 1000;
@@ -402,7 +400,7 @@ export default function App() {
           buy: p.buy ?? Math.max(0.01, p.sell * (1 - spreadRatio)),
         }));
       } else {
-        next[rate.code] = buildMockTrend(rate, trendPeriod);
+        next[rate.code] = [];
       }
     });
 
