@@ -15,7 +15,7 @@ const formatXLabel = (iso: string, period: TrendPeriod) => {
 
 export const TrendChart: React.FC<TrendChartProps> = ({ points, period }) => {
   if (points.length < 2) {
-    return <div className="text-sm text-slate-500 dark:text-slate-400">Not enough trend data.</div>;
+    return <div className="text-sm text-slate-500 dark:text-slate-400">Building real rate history. This chart fills in as rates are recorded each hour.</div>;
   }
 
   const width = 760;
